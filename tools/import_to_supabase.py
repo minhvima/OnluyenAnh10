@@ -88,10 +88,31 @@ def post(url, key, table, rows, overwrite, conflict):
         print(f"  {table}: sent {i + len(chunk)}/{len(rows)}")
 
 
+def patch_lesson_content(url, key, lessons):
+    """Update only title/estimated_minutes/content of lessons that already exist.
+
+    Leaves `status` alone, so lessons the parent already approved stay approved."""
+    for i, l in enumerate(lessons, 1):
+        body = {"title": l["title"], "estimated_minutes": l["estimated_minutes"], "content": l["content"]}
+        req = urllib.request.Request(
+            f"{url}/rest/v1/lessons?lesson_id=eq.{l['lesson_id']}",
+            data=json.dumps(body).encode("utf-8"),
+            method="PATCH",
+            headers=auth_headers(key, "merge-duplicates"),
+        )
+        try:
+            urllib.request.urlopen(req, timeout=60).read()
+        except urllib.error.HTTPError as e:
+            sys.exit(f"lessons PATCH {l['lesson_id']}: HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}")
+    print(f"  lessons: updated content of {len(lessons)} lessons (status untouched)")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--update-lesson-content", action="store_true",
+                    help="only refresh lesson content (e.g. after merge_lesson_ext.py); keeps approval status")
     args = ap.parse_args()
 
     questions, lessons = list(question_rows()), list(lesson_rows())
@@ -107,6 +128,10 @@ def main():
     if not url or not key:
         sys.exit("Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.")
     url = url.rstrip("/")
+    if args.update_lesson_content:
+        patch_lesson_content(url, key, lessons)
+        print("Done.")
+        return
     post(url, key, "lessons", lessons, args.overwrite, "lesson_id")        # lessons first (FK)
     post(url, key, "questions", questions, args.overwrite, "question_id")
     print("Done.")

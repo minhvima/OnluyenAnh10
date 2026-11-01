@@ -20,6 +20,13 @@
 - Chặn đăng ký ngoài allowlist bằng trigger trên `auth.users` (cần xác minh trên Supabase thật ở Sprint 1; có phương án dự phòng: kiểm tra `is_allowed()` ở RLS, người lạ đăng nhập được nhưng không đọc được gì).
 - Admin chỉ đọc dữ liệu học của học sinh, không sửa.
 
+## D6 — Giao diện học sinh (Sprint 2), PO duyệt hướng thiết kế v2.1
+- Phong cách khối mềm, indigo + cam; font Baloo 2 + Nunito **tự lưu trong app** (`@fontsource`), không nạp từ Google (quyền riêng tư của trẻ).
+- Tra từ: **từ điển dựng sẵn** `app/public/glossary.json` (2439 dạng từ, IPA Anh-Anh, nghĩa, ví dụ), không gọi API ngoài. Nút nghe dùng giọng `en-GB` của trình duyệt. IPA/nghĩa do Team soạn; 160 mục gắn `check` cần giáo viên xem.
+- Ví dụ gắn nhãn S/V/Aux/O/C/Adj/Adv/Prep/Conj: dữ liệu bổ sung `formula_v2`, `rules`, `examples` trong nội dung bài; mới có cho 10 bài Tenses.
+- Nối bài với câu hỏi bằng `practice_tags` ∩ `tags` của câu (không đổi schema).
+- Bài đạt khi ≥ 80% (đọc từ `app_settings`), chưa đạt chỉ cảnh báo, không khóa bài sau.
+
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
 - Thành công: em tự giác học đều; điểm ngữ pháp tăng; PO theo dõi được tiến độ; em hiểu bản chất.

@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup v2: màn Học + Luyện (Sprint 2)</title>
+<style>
+:root{
+  --bg:#f3f0ff; --surface:#ffffff; --text:#1e1b4b; --muted:#334155; --border:#d4d0f5;
+  --primary:#4f46e5; --on-primary:#ffffff; --primary-soft:#e0e7ff;
+  --accent:#c2410c; --on-accent:#ffffff; --sun:#fbbf24;
+  --ok:#0f7b4a; --ok-bg:#dcfce7; --bad:#b42318; --bad-bg:#fee2e2;
+  /* màu vai trò trong câu: chữ đậm + nền nhạt; luôn kèm NHÃN CHỮ (S, V, O...) để không chỉ dựa vào màu */
+  --S:#3730a3; --S-bg:#e0e7ff;   --V:#0f766e; --V-bg:#ccfbf1;   --O:#b45309; --O-bg:#fef3c7;
+  --Adj:#be185d; --Adj-bg:#fce7f3; --Adv:#0369a1; --Adv-bg:#e0f2fe; --Aux:#6d28d9; --Aux-bg:#ede9fe;
+  --Prep:#9a3412; --Prep-bg:#ffedd5; --Conj:#475569; --Conj-bg:#e2e8f0; --Det:#4d7c0f; --Det-bg:#ecfccb;
+  --r:20px; --r-sm:14px;
+  --shadow:0 4px 0 #d4d0f5, 0 10px 24px rgba(79,70,229,.12);
+  --font-head:'Baloo 2','Nunito',system-ui,sans-serif; --font-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.55 var(--font-body)}
+h1,h2,h3{font-family:var(--font-head);line-height:1.25;margin:0}
+.top{display:flex;align-items:center;gap:20px;padding:12px 32px;background:var(--surface);border-bottom:4px solid var(--primary)}
+.logo{font:700 22px var(--font-head);color:var(--primary)}
+.crumb{color:var(--muted)} .crumb b{color:var(--text)}
+.sp{flex:1}
+.chip{display:inline-flex;gap:6px;align-items:center;padding:4px 14px;border-radius:999px;font-weight:700;font-size:15px}
+.chip.fire{background:#ffedd5;color:#9a3412}.chip.xp{background:#fef3c7;color:#92400e}
+.wrap{max-width:1360px;margin:24px auto;padding:0 32px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:28px;align-items:start}
+.card{background:var(--surface);border:3px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:24px}
+.practice{position:sticky;top:16px}
+.theory h2{font-size:26px;margin-bottom:4px}
+.sec{display:flex;align-items:center;gap:10px;margin:22px 0 10px}
+.sec h3{font-size:20px}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.obj{color:var(--muted);margin:0 0 6px}
+.story{background:var(--primary-soft);border-radius:var(--r-sm);padding:12px 16px}
+.story p{margin:4px 0}.story .vi{color:var(--muted);font-size:15px}
+
+/* ===== ví dụ có gắn nhãn thành phần câu ===== */
+.legend{display:flex;flex-wrap:wrap;gap:6px 8px;margin-bottom:10px}
+.leg{display:inline-flex;gap:6px;align-items:center;font-size:14px;padding:2px 10px 2px 4px;border-radius:999px;border:2px solid var(--border);background:#fff}
+.sent{display:flex;flex-wrap:wrap;gap:6px 4px;align-items:flex-start}
+.tok{display:inline-flex;flex-direction:column;align-items:center;padding:2px 8px 0;border-radius:10px;font-weight:700}
+.tok b{font-weight:700;font-size:18px;line-height:1.35;white-space:nowrap}
+.tok i{font:700 12px/1.6 var(--font-head);font-style:normal;letter-spacing:.3px}
+.tok.S{background:var(--S-bg);color:var(--S)}.tok.V{background:var(--V-bg);color:var(--V)}.tok.O{background:var(--O-bg);color:var(--O)}
+.tok.Adj{background:var(--Adj-bg);color:var(--Adj)}.tok.Adv{background:var(--Adv-bg);color:var(--Adv)}.tok.Aux{background:var(--Aux-bg);color:var(--Aux)}
+.tok.Prep{background:var(--Prep-bg);color:var(--Prep)}.tok.Conj{background:var(--Conj-bg);color:var(--Conj)}.tok.Det{background:var(--Det-bg);color:var(--Det)}
+.leg .tok{padding:0 7px;border-radius:999px}.leg .tok i{line-height:1.5}
+.ex{display:grid;gap:8px;margin:8px 0}
+.ex>div{padding:8px 12px;border-radius:12px;background:#faf9ff;border:2px solid var(--border)}
+.ex .vi{display:block;color:var(--muted);font-size:14px;margin-top:2px}
+.ex .tag{display:inline-block;font:700 12px var(--font-head);color:#fff;background:var(--primary);border-radius:999px;padding:0 10px;margin-bottom:4px}
+
+/* ===== công thức + bảng quy tắc ===== */
+.formula{display:grid;gap:10px}
+.formula>div{padding:10px 12px;border-radius:14px;border:2px solid var(--border);background:#faf9ff}
+.formula .head{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.sign{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;color:#fff;font:700 18px var(--font-head)}
+.sign.p{background:var(--ok)}.sign.n{background:var(--bad)}.sign.q{background:var(--primary)}
+.plus{font-weight:800;color:var(--muted)}
+table.rule{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:16px}
+table.rule th{font:700 13px var(--font-head);text-align:left;color:var(--muted);padding:0 10px}
+table.rule td{padding:8px 10px;background:#fff;border-top:2px solid var(--border);border-bottom:2px solid var(--border);vertical-align:top}
+table.rule td:first-child{border-left:2px solid var(--border);border-radius:12px 0 0 12px}
+table.rule td:last-child{border-right:2px solid var(--border);border-radius:0 12px 12px 0}
+.end{font:700 15px ui-monospace,Consolas,monospace;padding:1px 8px;border-radius:8px;background:var(--V-bg);color:var(--V)}
+.arrow{color:var(--muted)}
+.ex-line{display:block;margin:2px 0}.ex-line u{text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:3px;text-underline-offset:3px}
+.signals{display:flex;flex-wrap:wrap;gap:8px}.signals span{padding:3px 12px;border-radius:999px;border:2px solid var(--Adv);color:var(--Adv);font-size:15px;background:#fff;font-weight:700}
+.mistake{border-left:6px solid var(--accent);padding:8px 14px;background:#fff7ed;border-radius:8px;margin-top:10px}
+.mistake s{color:var(--bad)} .mistake em{color:var(--ok);font-style:normal;font-weight:700}
+
+/* ===== cột bài tập (giữ nguyên như bản 1, huy hiệu A–D nhiều màu) ===== */
+.prog{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.bar{flex:1;height:14px;border-radius:999px;background:var(--primary-soft);border:2px solid var(--border);overflow:hidden}
+.bar i{display:block;height:100%;width:30%;background:linear-gradient(90deg,var(--primary),#06b6d4);border-radius:999px}
+.q{font:600 24px/1.4 var(--font-head);margin:8px 0 20px}
+.blank{display:inline-block;min-width:90px;border-bottom:4px solid var(--primary);margin:0 4px}
+.opts{display:grid;gap:12px}
+.opt{display:flex;align-items:center;gap:14px;width:100%;text-align:left;font:600 19px var(--font-body);color:var(--text);
+  padding:14px 18px;border:3px solid var(--border);border-radius:var(--r-sm);background:#fff;cursor:pointer;box-shadow:0 4px 0 var(--border);transition:transform .15s,box-shadow .15s,background .15s}
+.opt:hover:not(:disabled){transform:translateY(-1px);border-color:var(--primary)}
+.opt:focus-visible,.btn:focus-visible{outline:4px solid var(--sun);outline-offset:2px}
+.key{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font:700 16px var(--font-head);color:#fff}
+.opt[data-k=A] .key{background:#4f46e5}.opt[data-k=B] .key{background:#0e7490}.opt[data-k=C] .key{background:#b45309}.opt[data-k=D] .key{background:#a21caf}
+.opt .mark{margin-left:auto;font-weight:800}
+.opt.right{background:var(--ok-bg);border-color:var(--ok);box-shadow:0 4px 0 var(--ok)}
+.opt.wrong{background:var(--bad-bg);border-color:var(--bad);box-shadow:0 4px 0 var(--bad)}
+.opt.right .key{background:var(--ok)!important}.opt.wrong .key{background:var(--bad)!important}
+.opt:disabled{cursor:default}.opt:disabled:not(.right):not(.wrong){opacity:.55}
+.fb{margin-top:18px;border-radius:var(--r-sm);padding:14px 18px;border:3px solid}
+.fb.ok{background:var(--ok-bg);border-color:var(--ok)}.fb.bad{background:var(--bad-bg);border-color:var(--bad)}
+.fb h3{font-size:20px;margin-bottom:4px}.fb.ok h3{color:var(--ok)}.fb.bad h3{color:var(--bad)}.fb p{margin:0}
+.row{display:flex;gap:12px;align-items:center;margin-top:16px}
+.btn{font:700 18px var(--font-head);padding:10px 26px;border-radius:999px;border:3px solid var(--accent);background:var(--accent);color:var(--on-accent);cursor:pointer;box-shadow:0 4px 0 #7c2d12}
+.btn.ghost{background:#fff;color:var(--primary);border-color:var(--primary);box-shadow:0 4px 0 var(--border)}
+.hint{color:var(--muted);font-size:15px}
+kbd{font:600 14px ui-monospace,Consolas,monospace;border:2px solid var(--border);border-bottom-width:4px;border-radius:8px;padding:0 7px;background:#fff;color:var(--text)}
+.notes{max-width:1360px;margin:8px auto 32px;padding:0 32px;color:var(--muted);font-size:15px}
+
+/* ===== tra từ: bấm vào từ để xem phiên âm, nghĩa, loại từ, nghe đọc ===== */
+.w{border-radius:4px;cursor:help;text-decoration:underline dotted transparent;text-underline-offset:3px}
+.w:hover{background:#fde68a;text-decoration-color:var(--accent)}
+.w:focus-visible{outline:3px solid var(--sun);outline-offset:1px}
+.opt .w{cursor:inherit}.opt .w:hover{background:none;text-decoration-color:transparent}
+body.lookup .opt .w{cursor:help;text-decoration-color:var(--accent)}
+body.lookup .opt .w:hover{background:#fde68a}
+.lk-bar{display:flex;align-items:center;gap:10px;margin:0 0 10px;flex-wrap:wrap}
+.toggle{font:700 15px var(--font-head);padding:4px 14px;border-radius:999px;border:3px solid var(--primary);background:#fff;color:var(--primary);cursor:pointer;box-shadow:0 3px 0 var(--border)}
+.toggle[aria-pressed=true]{background:var(--primary);color:#fff}
+.toggle:focus-visible{outline:4px solid var(--sun);outline-offset:2px}
+#pop{position:absolute;z-index:30;width:330px;max-width:calc(100vw - 24px);background:#fff;border:3px solid var(--primary);border-radius:18px;box-shadow:0 6px 0 var(--border),0 16px 32px rgba(30,27,75,.25);padding:14px 16px}
+#pop[hidden]{display:none}
+.pop-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-right:28px}
+.pop-word{font:700 26px var(--font-head)}
+.pos{font:700 12px var(--font-head);background:var(--Aux-bg);color:var(--Aux);padding:1px 10px;border-radius:999px}
+.ipa{font:600 18px 'Segoe UI',system-ui,sans-serif;color:var(--muted);margin:2px 0 6px;display:flex;align-items:center;gap:8px}
+.spk{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;border:3px solid var(--primary);background:#fff;color:var(--primary);cursor:pointer;font-size:16px}
+.spk:focus-visible,.pop-x:focus-visible{outline:4px solid var(--sun);outline-offset:2px}
+.mean{font:700 21px var(--font-head);color:var(--V);margin:4px 0}
+.form{font-size:14px;color:var(--muted)}
+.pex{background:#faf9ff;border:2px solid var(--border);border-radius:12px;padding:6px 10px;margin-top:8px;font-size:16px}
+.pex .vi{display:block;color:var(--muted);font-size:14px}
+.pop-x{position:absolute;top:8px;right:10px;border:0;background:none;font:700 20px var(--font-head);color:var(--muted);cursor:pointer;border-radius:8px}
+.miss{color:var(--muted);font-size:15px}
+@media (max-width:900px){.wrap{grid-template-columns:1fr}.practice{position:static}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.vi,.story .vi,.ex .vi,.pex .vi,.obj{color:#0b0b1a}.story .vi{font-size:16px}.ex .vi,.pex .vi{font-size:15px}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="logo">Ôn Ngữ pháp 10</span>
+  <span class="crumb">Các thì › <b>Bài 1 · Hiện tại đơn (Present Simple)</b></span>
+  <span class="sp"></span>
+  <span class="chip fire" title="Chuỗi ngày học">🔥 3 ngày</span>
+  <span class="chip xp" title="Điểm kinh nghiệm">⭐ 120 XP</span>
+</header>
+
+<div class="wrap">
+<!-- ================= CỘT TRÁI: LÝ THUYẾT ================= -->
+<section class="card theory" aria-label="Lý thuyết">
+  <h2>Hiện tại đơn (Present Simple)</h2>
+  <p class="obj">Dùng cho thói quen, sự thật hiển nhiên và lịch trình. Chú ý động từ khi chủ ngữ là he/she/it.</p>
+
+  <div class="sec"><span class="dot" style="background:var(--primary)"></span><h3>Đọc thử một đoạn</h3></div>
+  <div class="story">
+    <p>Every morning, Lan gets up at six. She brushes her teeth and eats breakfast.</p>
+    <p class="vi">Mỗi sáng, Lan dậy lúc 6 giờ. Bạn ấy đánh răng và ăn sáng.</p>
+  </div>
+
+  <div class="sec"><span class="dot" style="background:var(--V)"></span><h3>Các thành phần trong câu</h3></div>
+  <div class="legend" aria-label="Chú giải ký hiệu">
+    <span class="leg"><span class="tok S"><i>S</i></span> Chủ ngữ</span>
+    <span class="leg"><span class="tok V"><i>V</i></span> Động từ</span>
+    <span class="leg"><span class="tok Aux"><i>Aux</i></span> Trợ động từ</span>
+    <span class="leg"><span class="tok O"><i>O</i></span> Tân ngữ</span>
+    <span class="leg"><span class="tok Adj"><i>Adj</i></span> Tính từ</span>
+    <span class="leg"><span class="tok Adv"><i>Adv</i></span> Trạng từ / cụm chỉ nơi chốn, thời gian</span>
+    <span class="leg"><span class="tok Prep"><i>Prep</i></span> Giới từ</span>
+    <span class="leg"><span class="tok Det"><i>Det</i></span> Từ hạn định (a, the, my, her…)</span>
+  </div>
+
+  <div class="sec"><span class="dot" style="background:var(--accent)"></span><h3>Công thức</h3></div>
+  <div class="formula">
+    <div>
+      <div class="head"><span class="sign p" aria-label="Khẳng định">＋</span>
+        <span class="tok S"><b>S</b></span><span class="plus">+</span><span class="tok V"><b>V(s/es)</b></span><span class="plus">+</span><span class="tok O"><b>O</b></span></div>
+      <div class="sent">
+        <span class="tok S"><b>Lan</b><i>S</i></span><span class="tok V"><b>gets up</b><i>V</i></span><span class="tok Adv"><b>at six</b><i>Adv</i></span>
+      </div>
+      <div class="sent" style="margin-top:6px">
+        <span class="tok S"><b>She</b><i>S</i></span><span class="tok V"><b>brushes</b><i>V</i></span><span class="tok Det"><b>her</b><i>Det</i></span><span class="tok O"><b>teeth</b><i>O</i></span>
+      </div>
+    </div>
+    <div>
+      <div class="head"><span class="sign n" aria-label="Phủ định">－</span>
+        <span class="tok S"><b>S</b></span><span class="plus">+</span><span class="tok Aux"><b>don't / doesn't</b></span><span class="plus">+</span><span class="tok V"><b>V (nguyên mẫu)</b></span></div>
+      <div class="sent">
+        <span class="tok S"><b>Nam</b><i>S</i></span><span class="tok Aux"><b>doesn't</b><i>Aux</i></span><span class="tok V"><b>get up</b><i>V</i></span><span class="tok Adv"><b>early</b><i>Adv</i></span>
+      </div>
+      <div class="sent" style="margin-top:6px">
+        <span class="tok S"><b>They</b><i>S</i></span><span class="tok Aux"><b>don't</b><i>Aux</i></span><span class="tok V"><b>watch</b><i>V</i></span><span class="tok O"><b>TV</b><i>O</i></span>
+      </div>
+      <span class="hint">Sau doesn't động từ về nguyên mẫu, <b>không thêm -s</b>.</span>
+    </div>
+    <div>
+      <div class="head"><span class="sign q" aria-label="Nghi vấn">？</span>
+        <span class="tok Aux"><b>Do / Does</b></span><span class="plus">+</span><span class="tok S"><b>S</b></span><span class="plus">+</span><span class="tok V"><b>V (nguyên mẫu)</b></span><span class="plus">?</span></div>
+      <div class="sent">
+        <span class="tok Aux"><b>Does</b><i>Aux</i></span><span class="tok S"><b>Nam</b><i>S</i></span><span class="tok V"><b>walk</b><i>V</i></span><span class="tok Adv"><b>to school</b><i>Adv</i></span>
+      </div>
+    </div>
+    <div>
+      <div class="head"><span class="sign p" aria-label="Với động từ to be">＋</span>
+        <span class="tok S"><b>S</b></span><span class="plus">+</span><span class="tok V"><b>am / is / are</b></span><span class="plus">+</span><span class="tok Adj"><b>Adj</b></span></div>
+      <div class="sent">
+        <span class="tok S"><b>Mai</b><i>S</i></span><span class="tok V"><b>is</b><i>V</i></span><span class="tok Adj"><b>kind</b><i>Adj</i></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec"><span class="dot" style="background:var(--Adj)"></span><h3>Cách thêm -s / -es cho V (he / she / it)</h3></div>
+  <table class="rule">
+    <thead><tr><th>Trường hợp</th><th>Quy tắc</th><th>Ví dụ</th></tr></thead>
+    <tbody>
+      <tr><td>Đa số động từ</td><td>thêm <span class="end">-s</span></td>
+        <td><span class="ex-line">eat → eat<u>s</u></span><span class="ex-line">read → read<u>s</u></span><span class="ex-line">She <b>eats</b> an apple.</span></td></tr>
+      <tr><td>Tận cùng <b>-s, -sh, -ch, -x, -z, -o</b></td><td>thêm <span class="end">-es</span></td>
+        <td><span class="ex-line">watch → watch<u>es</u> · wash → wash<u>es</u></span><span class="ex-line">fix → fix<u>es</u> · go → go<u>es</u></span><span class="ex-line">He <b>goes</b> to school by bike.</span></td></tr>
+      <tr><td>Phụ âm + <b>y</b></td><td>đổi y → <span class="end">-ies</span></td>
+        <td><span class="ex-line">study → stud<u>ies</u> · fly → fl<u>ies</u></span><span class="ex-line">She <b>studies</b> English.</span></td></tr>
+      <tr><td>Nguyên âm (a, e, o, u) + <b>y</b></td><td>giữ y, thêm <span class="end">-s</span></td>
+        <td><span class="ex-line">play → play<u>s</u> · enjoy → enjoy<u>s</u></span><span class="ex-line">Nam <b>plays</b> football.</span></td></tr>
+      <tr><td>Bất quy tắc: <b>have</b></td><td>have → <span class="end">has</span></td>
+        <td><span class="ex-line">She <b>has</b> a brother.</span></td></tr>
+      <tr><td>Chủ ngữ <b>I, you, we, they</b> / danh từ số nhiều</td><td>giữ nguyên <span class="end">V</span></td>
+        <td><span class="ex-line">They <b>play</b> football.</span><span class="ex-line">My parents <b>work</b> in Hanoi.</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="sec"><span class="dot" style="background:var(--Prep)"></span><h3>Thêm ví dụ (đọc để quen)</h3></div>
+  <div class="ex">
+    <div><span class="tag">Thói quen</span>
+      <div class="sent"><span class="tok S"><b>My mother</b><i>S</i></span><span class="tok V"><b>makes</b><i>V</i></span><span class="tok O"><b>breakfast</b><i>O</i></span><span class="tok Adv"><b>every morning</b><i>Adv</i></span></div>
+      <span class="vi">Mẹ tôi nấu bữa sáng mỗi sáng.</span></div>
+    <div><span class="tag">Sự thật hiển nhiên</span>
+      <div class="sent"><span class="tok Det"><b>The</b><i>Det</i></span><span class="tok S"><b>sun</b><i>S</i></span><span class="tok V"><b>rises</b><i>V</i></span><span class="tok Prep"><b>in</b><i>Prep</i></span><span class="tok Det"><b>the</b><i>Det</i></span><span class="tok Adv"><b>east</b><i>Adv</i></span></div>
+      <span class="vi">Mặt trời mọc ở hướng đông.</span></div>
+    <div><span class="tag">Lịch trình</span>
+      <div class="sent"><span class="tok Det"><b>The</b><i>Det</i></span><span class="tok S"><b>bus</b><i>S</i></span><span class="tok V"><b>leaves</b><i>V</i></span><span class="tok Adv"><b>at 6:45</b><i>Adv</i></span></div>
+      <span class="vi">Xe buýt rời bến lúc 6:45.</span></div>
+    <div><span class="tag">Có trạng từ tần suất</span>
+      <div class="sent"><span class="tok S"><b>She</b><i>S</i></span><span class="tok Adv"><b>usually</b><i>Adv</i></span><span class="tok V"><b>goes</b><i>V</i></span><span class="tok Prep"><b>to</b><i>Prep</i></span><span class="tok O"><b>school</b><i>O</i></span><span class="tok Prep"><b>by</b><i>Prep</i></span><span class="tok O"><b>bike</b><i>O</i></span></div>
+      <span class="vi">Bạn ấy thường đi học bằng xe đạp.</span></div>
+  </div>
+
+  <div class="sec"><span class="dot" style="background:var(--Adv)"></span><h3>Dấu hiệu nhận biết</h3></div>
+  <div class="signals"><span>always</span><span>usually</span><span>often</span><span>sometimes</span><span>never</span><span>every day</span><span>on Mondays</span></div>
+  <div class="mistake"><b>Lỗi hay gặp:</b> <s>She don't like fish.</s> → <em>She doesn't like fish.</em><br><small>Ngôi thứ ba số ít dùng doesn't.</small></div>
+</section>
+
+<!-- ================= CỘT PHẢI: BÀI TẬP (dính khi cuộn) ================= -->
+<section class="card practice" aria-label="Bài tập">
+  <div class="prog"><span class="hint">Câu <b>3</b>/10</span><div class="bar" role="progressbar" aria-valuenow="30" aria-valuemin="0" aria-valuemax="100" aria-label="Tiến độ bài"><i></i></div><span class="hint">Đúng 2/2</span></div>
+  <p class="q" id="q">My mother <span class="blank" aria-label="chỗ trống"></span> breakfast for the whole family every morning.</p>
+  <div class="lk-bar"><button class="toggle" id="lkbtn" aria-pressed="false">Tra từ <kbd>T</kbd></button><span class="hint" id="lkmsg">Bấm vào một từ (gạch chân khi di chuột) để xem nghĩa. Muốn tra từ trong các đáp án, bật “Tra từ”.</span></div>
+  <div class="opts" id="opts" role="group" aria-labelledby="q">
+    <button class="opt" data-k="A"><span class="key">A</span>make</button>
+    <button class="opt" data-k="B"><span class="key">B</span>makes</button>
+    <button class="opt" data-k="C"><span class="key">C</span>is making</button>
+    <button class="opt" data-k="D"><span class="key">D</span>made</button>
+  </div>
+  <div id="fb" role="status" aria-live="polite"></div>
+  <div class="row">
+    <button class="btn" id="next" hidden>Câu tiếp theo <kbd>Enter</kbd></button>
+    <button class="btn ghost" id="hintbtn">Gợi ý <kbd>H</kbd></button>
+    <span class="hint" id="hint"></span>
+  </div>
+  <p class="hint" style="margin-top:20px">Phím tắt: <kbd>A</kbd>–<kbd>D</kbd> hoặc <kbd>1</kbd>–<kbd>4</kbd> chọn đáp án · <kbd>Enter</kbd> câu tiếp · <kbd>H</kbd> gợi ý</p>
+</section>
+</div>
+<p class="notes">MOCKUP v2. Mỗi từ trong ví dụ có <b>nhãn chữ</b> (S, V, O...) kèm màu, nên em nhìn không phân biệt được màu vẫn đọc được. Cột bài tập đứng yên khi cuộn lý thuyết. Emoji 🔥⭐ chỉ là tạm, bản thật dùng icon SVG. Font Baloo 2/Nunito chưa nạp trong mockup.</p>
+<div id="pop" role="dialog" aria-label="Tra từ" hidden>
+  <button class="pop-x" id="popx" aria-label="Đóng">✕</button>
+  <div class="pop-head"><span class="pop-word" id="pw"></span><span class="pos" id="ppos"></span></div>
+  <div class="form" id="pform"></div>
+  <div class="ipa"><span id="pipa"></span><button class="spk" id="pspk" aria-label="Nghe đọc">🔊</button></div>
+  <div class="mean" id="pmean"></div>
+  <div class="pex" id="pex"></div>
+</div>
+<script>
+const opts=[...document.querySelectorAll('.opt')],fb=document.getElementById('fb'),next=document.getElementById('next'),hint=document.getElementById('hint');
+const RIGHT='B', WHY='Dấu hiệu "every morning" chỉ thói quen → Hiện tại đơn. Chủ ngữ số ít (my mother) → makes.';
+const HINT='Gợi ý: tìm dấu hiệu thời gian "every morning" và xem chủ ngữ số ít hay số nhiều.';
+let done=false;
+function pick(k){
+  if(done)return;done=true;
+  opts.forEach(o=>{o.disabled=true;
+    if(o.dataset.k===RIGHT){o.classList.add('right');o.insertAdjacentHTML('beforeend','<span class="mark">✓ Đúng</span>')}
+    else if(o.dataset.k===k){o.classList.add('wrong');o.insertAdjacentHTML('beforeend','<span class="mark">✗ Chưa đúng</span>')}});
+  const ok=k===RIGHT;
+  fb.innerHTML=`<div class="fb ${ok?'ok':'bad'}"><h3>${ok?'✓ Chuẩn rồi!':'✗ Chưa đúng, không sao đâu!'}</h3><p>${WHY}</p></div>`;
+  next.hidden=false;next.focus();
+}
+function reset(){done=false;opts.forEach(o=>{o.disabled=false;o.classList.remove('right','wrong');o.querySelector('.mark')?.remove()});fb.innerHTML='';next.hidden=true;hint.textContent=''}
+opts.forEach(o=>o.addEventListener('click',()=>pick(o.dataset.k)));
+next.addEventListener('click',reset);
+document.getElementById('hintbtn').addEventListener('click',()=>hint.textContent=HINT);
+addEventListener('keydown',e=>{
+  const key=e.key.toLowerCase();
+  if(key==='h'){hint.textContent=HINT;return}
+  const i='abcd1234'.indexOf(key); if(i>-1&&key.length===1){pick('ABCD'[i%4]);return}
+  if(e.key==='Enter'&&done){e.preventDefault();reset()}
+});
+
+/* ================= TRA TỪ ================= */
+const G={
+ breakfast:{ipa:'/ˈbrekfəst/',pos:'danh từ',vi:'bữa sáng',ex:'I have breakfast at six.',exvi:'Tôi ăn sáng lúc 6 giờ.'},
+ whole:{ipa:'/həʊl/',pos:'tính từ',vi:'cả, toàn bộ',ex:'The whole class laughed.',exvi:'Cả lớp đã cười.'},
+ family:{ipa:'/ˈfæməli/',pos:'danh từ',vi:'gia đình',ex:'My family lives in Hue.',exvi:'Gia đình tôi sống ở Huế.'},
+ make:{ipa:'/meɪk/',pos:'động từ',vi:'làm, chế biến, tạo ra',ex:'She makes tea every day.',exvi:'Cô ấy pha trà mỗi ngày.'},
+ every:{ipa:'/ˈevri/',pos:'từ hạn định',vi:'mỗi, mọi',ex:'Every student has a book.',exvi:'Mỗi học sinh đều có một quyển sách.'},
+ morning:{ipa:'/ˈmɔːnɪŋ/',pos:'danh từ',vi:'buổi sáng',ex:'I run in the morning.',exvi:'Tôi chạy bộ vào buổi sáng.'},
+ mother:{ipa:'/ˈmʌðə(r)/',pos:'danh từ',vi:'mẹ',ex:'My mother is a teacher.',exvi:'Mẹ tôi là giáo viên.'},
+ usually:{ipa:'/ˈjuːʒuəli/',pos:'trạng từ',vi:'thường thường',ex:'He usually walks to school.',exvi:'Cậu ấy thường đi bộ đến trường.'},
+ brush:{ipa:'/brʌʃ/',pos:'động từ',vi:'đánh (răng), chải',ex:'I brush my teeth twice a day.',exvi:'Tôi đánh răng hai lần một ngày.'},
+ teeth:{ipa:'/tiːθ/',pos:'danh từ (số nhiều)',vi:'răng',form:'số nhiều của tooth',ex:'She has white teeth.',exvi:'Cô ấy có hàm răng trắng.'},
+ rise:{ipa:'/raɪz/',pos:'động từ',vi:'mọc (mặt trời), tăng lên',ex:'The sun rises in the east.',exvi:'Mặt trời mọc ở hướng đông.'},
+ east:{ipa:'/iːst/',pos:'danh từ',vi:'hướng đông, phía đông',ex:'The river flows to the east.',exvi:'Con sông chảy về phía đông.'},
+ sun:{ipa:'/sʌn/',pos:'danh từ',vi:'mặt trời',ex:'The sun is hot today.',exvi:'Hôm nay trời nắng nóng.'},
+ school:{ipa:'/skuːl/',pos:'danh từ',vi:'trường học',ex:'We walk to school.',exvi:'Chúng tôi đi bộ đến trường.'},
+ bike:{ipa:'/baɪk/',pos:'danh từ',vi:'xe đạp',ex:'He goes to school by bike.',exvi:'Cậu ấy đi học bằng xe đạp.'}
+};
+const LEMMA={makes:'make',made:'make',making:'make',brushes:'brush',rises:'rise'};
+const pop=document.getElementById('pop');
+let lastW=null,lookup=false;
+const MSG_OFF='Bấm vào một từ (gạch chân khi di chuột) để xem nghĩa. Muốn tra từ trong các đáp án, bật “Tra từ”.';
+const MSG_ON='Đang bật tra từ: bấm vào từ nào cũng chỉ hiện nghĩa, chưa chọn đáp án.';
+function wrapWords(root){
+  const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode(n){
+    if(!n.nodeValue.trim()||!/[A-Za-z]/.test(n.nodeValue))return NodeFilter.FILTER_REJECT;
+    return n.parentElement.closest('i,kbd,script,style,.key,.mark,.sign,.legend,.w,#pop,.lk-bar,.hint,.vi')?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT;
+  }});
+  const nodes=[];
+  while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    const parts=n.nodeValue.split(/([A-Za-z]+(?:'[a-z]+)?)/);
+    const f=document.createDocumentFragment();
+    parts.forEach((t,i)=>{
+      if(i%2){const s=document.createElement('span');s.className='w';s.tabIndex=0;s.textContent=t;s.dataset.w=t.toLowerCase();f.append(s);}
+      else if(t)f.append(t);
+    });
+    n.replaceWith(f);
+  });
+}
+function speak(w){
+  if(!('speechSynthesis' in window))return;
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(w);u.lang='en-GB';u.rate=0.85;
+  const v=speechSynthesis.getVoices().find(x=>x.lang==='en-GB');if(v)u.voice=v;
+  speechSynthesis.speak(u);
+}
+function openPop(el){
+  const raw=el.dataset.w,key=LEMMA[raw]||raw,e=G[key];
+  lastW=el;
+  document.getElementById('pw').textContent=el.textContent;
+  document.getElementById('ppos').textContent=e?e.pos:'';
+  document.getElementById('pform').textContent=e?(e.form||(key!==raw?'dạng của '+key:'')):'';
+  document.getElementById('pipa').textContent=e?e.ipa:'';
+  document.getElementById('pmean').textContent=e?e.vi:'Chưa có trong từ điển mẫu';
+  document.getElementById('pex').innerHTML=e?'<b>VD:</b> '+e.ex+'<span class="vi">'+e.exvi+'</span>':'<span class="miss">Bản thật có đủ các từ trong bài học và câu hỏi.</span>';
+  const sp=document.getElementById('pspk');
+  sp.hidden=!('speechSynthesis' in window);
+  sp.onclick=()=>speak(key);
+  pop.hidden=false;
+  const r=el.getBoundingClientRect();
+  let x=r.left+scrollX,y=r.bottom+scrollY+8;
+  x=Math.min(x,scrollX+document.documentElement.clientWidth-pop.offsetWidth-12);
+  if(r.bottom+pop.offsetHeight+16>innerHeight)y=r.top+scrollY-pop.offsetHeight-8;
+  pop.style.left=Math.max(12,x)+'px';
+  pop.style.top=Math.max(8,y)+'px';
+  document.getElementById('popx').focus();
+}
+function closePop(){
+  if(pop.hidden)return;
+  pop.hidden=true;
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  if(lastW)lastW.focus();
+}
+function setLookup(on){
+  lookup=on;
+  document.body.classList.toggle('lookup',on);
+  document.getElementById('lkbtn').setAttribute('aria-pressed',String(on));
+  document.getElementById('lkmsg').textContent=on?MSG_ON:MSG_OFF;
+}
+document.addEventListener('click',e=>{
+  const w=e.target.closest('.w');
+  if(w){
+    if(w.closest('.opt')&&!lookup)return;   // trong đáp án: chỉ tra khi bật chế độ Tra từ
+    e.preventDefault();e.stopPropagation();openPop(w);return;
+  }
+  if(!pop.contains(e.target))closePop();
+},true);
+document.getElementById('popx').addEventListener('click',closePop);
+document.getElementById('lkbtn').addEventListener('click',()=>setLookup(!lookup));
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closePop();return;}
+  if(e.target.classList&&e.target.classList.contains('w')&&e.key==='Enter'){e.preventDefault();e.stopImmediatePropagation();openPop(e.target);return;}
+  if(e.key.toLowerCase()==='t'&&!e.ctrlKey&&!e.metaKey&&!e.altKey){setLookup(!lookup);e.stopImmediatePropagation();}
+},true);
+wrapWords(document.querySelector('.theory'));
+wrapWords(document.getElementById('q'));
+wrapWords(document.getElementById('opts'));
+const _pick=pick;
+pick=function(k){_pick(k);wrapWords(document.getElementById('fb'));};
+</script>
+</body>
+</html>

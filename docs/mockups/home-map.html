@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: trang chủ - bản đồ chủ điểm</title>
+<style>
+:root{--bg:#f3f0ff;--surface:#fff;--text:#1e1b4b;--muted:#334155;--border:#d4d0f5;--primary:#4f46e5;--accent:#c2410c;--ok:#0f7b4a;--sun:#fbbf24;
+ --font-head:'Baloo 2','Nunito',system-ui,sans-serif;--font-body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:17px/1.55 var(--font-body)}
+h1,h2,h3{font-family:var(--font-head);margin:0;line-height:1.25}
+.top{display:flex;align-items:center;gap:20px;padding:12px 32px;background:#fff;border-bottom:4px solid var(--primary)}
+.logo{font:700 22px var(--font-head);color:var(--primary)}.sp{flex:1}
+.chip{padding:4px 14px;border-radius:999px;font-weight:700;font-size:15px}
+main{max-width:1360px;margin:24px auto;padding:0 32px}
+.hello{background:var(--surface);border:3px solid var(--border);border-radius:20px;padding:20px 24px;box-shadow:0 4px 0 var(--border);display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.hello h1{font-size:28px}
+.next{margin-left:auto;font:700 18px var(--font-head);padding:12px 28px;border-radius:999px;border:3px solid var(--accent);background:var(--accent);color:#fff;box-shadow:0 4px 0 #7c2d12;cursor:pointer}
+.next:focus-visible{outline:4px solid var(--sun);outline-offset:2px}
+.phase{display:flex;align-items:center;gap:10px;margin:28px 0 12px}.phase h2{font-size:22px}
+.phase span{font-size:15px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.t{--c:#4f46e5;--cb:#e0e7ff;background:#fff;border:3px solid var(--c);border-radius:20px;padding:0;overflow:hidden;box-shadow:0 5px 0 var(--c)}
+.t header{background:var(--cb);padding:12px 16px;display:flex;align-items:center;gap:10px}
+.t .num{width:36px;height:36px;border-radius:12px;background:var(--c);color:#fff;display:grid;place-items:center;font:700 18px var(--font-head)}
+.t h3{font-size:19px;color:var(--text)}
+.t .body{padding:12px 16px 16px}
+.en{color:var(--muted);font-size:15px;margin:0 0 10px}
+.bar{height:12px;border-radius:999px;background:#eef;border:2px solid var(--border);overflow:hidden}.bar i{display:block;height:100%;background:var(--c)}
+.meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:15px}
+.pill{font:700 13px var(--font-head);padding:2px 12px;border-radius:999px;border:2px solid}
+.pill.done{background:#dcfce7;color:#0f7b4a;border-color:#0f7b4a}.pill.doing{background:#fef3c7;color:#92400e;border-color:#b45309}
+.pill.todo{background:#f1f5f9;color:#475569;border-color:#94a3b8}.pill.warn{background:#ffedd5;color:#9a3412;border-color:#c2410c}
+.note{font-size:14px;color:var(--muted);margin-top:6px}
+.notes{max-width:1360px;margin:24px auto 32px;padding:0 32px;color:var(--muted);font-size:15px}
+.vi,.story .vi,.ex .vi,.pex .vi,.obj{color:#0b0b1a}.story .vi{font-size:16px}.ex .vi,.pex .vi{font-size:15px}
+</style>
+</head>
+<body>
+<header class="top"><span class="logo">Ôn Ngữ pháp 10</span><span class="sp"></span>
+  <span class="chip" style="background:#ffedd5;color:#9a3412">🔥 3 ngày</span><span class="chip" style="background:#fef3c7;color:#92400e">⭐ 120 XP</span></header>
+<main>
+  <section class="hello"><div><h1>Chào Minh, hôm nay học tiếp nhé!</h1><p style="margin:4px 0 0;color:var(--muted)">Bài gợi ý: <b>Các thì · Bài 4 Hiện tại hoàn thành</b> · khoảng 15 phút</p></div>
+    <button class="next">Học tiếp <kbd style="font:600 13px ui-monospace,Consolas,monospace;background:#fff;color:#000;border-radius:6px;padding:0 6px">Enter</kbd></button></section>
+
+  <div class="phase"><h2>Giai đoạn 1 · Nền tảng</h2><span>tuần 1–4</span></div>
+  <div class="grid">
+    <article class="t" style="--c:#4f46e5;--cb:#e0e7ff"><header><span class="num">1</span><h3>Các thì</h3></header><div class="body"><p class="en">Tenses</p><div class="bar"><i style="width:30%"></i></div><div class="meta"><span>3/10 bài đạt</span><span class="pill doing">Đang học</span></div></div></article>
+    <article class="t" style="--c:#0e7490;--cb:#cffafe"><header><span class="num">2</span><h3>Cấu trúc &amp; kết hợp câu</h3></header><div class="body"><p class="en">Sentence structures</p><div class="bar"><i style="width:0"></i></div><div class="meta"><span>0/8 bài đạt</span><span class="pill todo">Chưa học</span></div></div></article>
+    <article class="t" style="--c:#a21caf;--cb:#fae8ff"><header><span class="num">3</span><h3>Khuyết thiếu &amp; lượng từ</h3></header><div class="body"><p class="en">Modals &amp; quantifiers</p><div class="bar"><i style="width:0"></i></div><div class="meta"><span>0/8 bài đạt</span><span class="pill todo">Chưa học</span></div></div></article>
+  </div>
+
+  <div class="phase"><h2>Giai đoạn 2 · Mở rộng</h2><span>tuần 5–7</span></div>
+  <div class="grid">
+    <article class="t" style="--c:#b45309;--cb:#fef3c7"><header><span class="num">4</span><h3>Mạo từ &amp; đại từ</h3></header><div class="body"><p class="en">Articles &amp; pronouns</p><div class="bar"><i style="width:100%"></i></div><div class="meta"><span>6/6 bài đạt</span><span class="pill done">✓ Đã đạt</span></div></div></article>
+    <article class="t" style="--c:#be185d;--cb:#fce7f3"><header><span class="num">5</span><h3>Giới từ &amp; liên từ</h3></header><div class="body"><p class="en">Prepositions &amp; conjunctions</p><div class="bar"><i style="width:55%"></i></div><div class="meta"><span>4/7 bài đạt</span><span class="pill warn">! Ôn lại</span></div><p class="note">Bài 5 chưa đạt (60%). Xem lại lý thuyết nhé.</p></div></article>
+    <article class="t" style="--c:#0f766e;--cb:#ccfbf1"><header><span class="num">6</span><h3>So sánh</h3></header><div class="body"><p class="en">Comparisons</p><div class="bar"><i style="width:0"></i></div><div class="meta"><span>0/6 bài đạt</span><span class="pill todo">Chưa học</span></div></div></article>
+  </div>
+</main>
+<p class="notes">MOCKUP trang chủ: mỗi chủ điểm một màu riêng (màu chủ điểm không trùng với xanh lá/đỏ dùng cho đúng/sai). Trạng thái luôn có chữ + icon, không chỉ dựa vào màu. Chủ điểm chưa đạt chỉ cảnh báo nhẹ, không khóa bài sau. Dữ liệu và tên "Minh" chỉ là minh họa.</p>
+</body>
+</html>

@@ -1,19 +1,38 @@
-/* Design tokens: friendly, young palette; text/background pairs meet WCAG AA. */
+/* Design tokens (docs/design-system.md v2.1). Every text/background pair below was checked for WCAG AA (>= 4.5:1). */
 :root {
-  --c-bg: #f6f7ff;
+  --c-bg: #f3f0ff;
   --c-surface: #ffffff;
-  --c-text: #1f2347;
-  --c-muted: #4d5380;
+  --c-text: #1e1b4b;
+  --c-ink: #0b0b1a;        /* Vietnamese reading text: near black for contrast */
+  --c-muted: #334155;
   --c-primary: #4f46e5;
   --c-primary-text: #ffffff;
+  --c-primary-soft: #e0e7ff;
+  --c-accent: #c2410c;     /* main action button, white text 5.18:1 */
+  --c-accent-text: #ffffff;
+  --c-sun: #fbbf24;        /* focus ring */
+  --c-border: #d4d0f5;
   --c-correct: #0f7b4a;
-  --c-correct-bg: #dff7ea;
+  --c-correct-bg: #dcfce7;
   --c-wrong: #b42318;
-  --c-wrong-bg: #fde8e6;
-  --c-accent: #ffb020;
-  --radius: 14px;
-  --space: 8px;
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --c-wrong-bg: #fee2e2;
+  /* sentence-part roles: text colour + soft background; a letter label is always shown too */
+  --r-S: #3730a3;    --r-S-bg: #e0e7ff;
+  --r-V: #0f766e;    --r-V-bg: #ccfbf1;
+  --r-O: #b45309;    --r-O-bg: #fef3c7;
+  --r-C: #4d7c0f;    --r-C-bg: #ecfccb;
+  --r-Adj: #be185d;  --r-Adj-bg: #fce7f3;
+  --r-Adv: #0369a1;  --r-Adv-bg: #e0f2fe;
+  --r-Aux: #6d28d9;  --r-Aux-bg: #ede9fe;
+  --r-Prep: #9a3412; --r-Prep-bg: #ffedd5;
+  --r-Conj: #475569; --r-Conj-bg: #e2e8f0;
+  --radius: 20px;
+  --radius-sm: 14px;
+  --shadow: 0 4px 0 #d4d0f5, 0 10px 24px rgba(79, 70, 229, 0.12);
+  --font-head: 'Baloo 2', 'Nunito', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--c-bg); color: var(--c-text); font-family: var(--font); font-size: 17px; line-height: 1.5; }
+body { margin: 0; background: var(--c-bg); color: var(--c-text); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
+h1, h2, h3 { font-family: var(--font-head); line-height: 1.25; margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

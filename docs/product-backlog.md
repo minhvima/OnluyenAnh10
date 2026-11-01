@@ -19,7 +19,8 @@ Goal: dữ liệu sạch + DB thiết kế xong + khung app.
 - Script import JSON → DB; màn Admin: allowlist, danh sách/duyệt/loại câu hỏi.
 - Deploy GitHub Pages (repo public chỉ chứa mã, không chứa câu hỏi).
 
-## Sprint 2 — Học & luyện một chủ điểm (FR-C) — ưu tiên số 1 của PO
+## Sprint 2 — Học & luyện một chủ điểm (FR-C) — ĐÃ VIẾT, CHỜ KIỂM TRA THẬT
+Đã làm: trang chủ nhiều màu, danh sách bài, màn Học + Luyện 2 cột, 6 dạng câu, phản hồi tức thì, phím tắt, xáo đáp án, tổng kết + lưu kết quả, tra từ (popup + chế độ Tra từ), ví dụ gắn nhãn cho 10 bài Tenses. 29 test qua, build qua; chạy thử với dữ liệu thật qua bản xem thử cục bộ (14 chủ điểm, không lỗi). CHƯA kiểm với Supabase thật (cần PO duyệt bài + chạy import cập nhật nội dung bài). Còn: ví dụ gắn nhãn cho 130 bài khác; hint; kiểm tra IPA/nghĩa/nhãn với giáo viên.
 - Trang chủ chủ điểm/bài; màn 2 cột; phản hồi tức thì; 6 dạng câu; phím tắt; xáo đáp án; hint; hàm chấm + test.
 - Chủ điểm đầu tiên: TENSES (khớp lộ trình).
 
