@@ -1,0 +1,19 @@
+/* Design tokens: friendly, young palette; text/background pairs meet WCAG AA. */
+:root {
+  --c-bg: #f6f7ff;
+  --c-surface: #ffffff;
+  --c-text: #1f2347;
+  --c-muted: #4d5380;
+  --c-primary: #4f46e5;
+  --c-primary-text: #ffffff;
+  --c-correct: #0f7b4a;
+  --c-correct-bg: #dff7ea;
+  --c-wrong: #b42318;
+  --c-wrong-bg: #fde8e6;
+  --c-accent: #ffb020;
+  --radius: 14px;
+  --space: 8px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--c-bg); color: var(--c-text); font-family: var(--font); font-size: 17px; line-height: 1.5; }

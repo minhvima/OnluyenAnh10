@@ -1,0 +1,12 @@
+node_modules/
+dist/
+__pycache__/
+.env
+.env.*
+!.env.example
+# Cau hoi/dap an KHONG dua len repo public (GitHub Pages): chi nam trong Supabase.
+data_bank/
+Data ban dau/
+tools/content_src/
+.claude/settings.local.json
+db/*.local.sql
