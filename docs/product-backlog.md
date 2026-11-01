@@ -12,7 +12,8 @@ Goal: dữ liệu sạch + DB thiết kế xong + khung app.
 - [x] Khởi tạo `app/` (Vite + TS + vitest): hàm chấm, xáo, mastery, lặp cách quãng; 9 test qua, build qua
 - [ ] Viết lại dạng matching cho thiếu cặp duy nhất; áp dụng bài học rút ra cho 11 chủ điểm còn lại
 
-## Sprint 1 — Hạ tầng & quản trị (FR-A, FR-B) — ĐANG LÀM
+## Sprint 1 — Hạ tầng & quản trị (FR-A, FR-B) — XONG (2026-11-02)
+Đã kiểm chứng thật: Supabase chạy schema, đăng nhập Google, import 2643 câu + 140 bài, màn Quản trị, email lạ bị chặn (PO tự thử).
 Đã viết (chưa chạy với Supabase thật): sửa trigger schema + `my_access()`, `db/seed.sql`, `tools/import_to_supabase.py` (dry-run OK: 2643 câu, 140 bài), app có đăng nhập Google, màn từ chối, màn Quản trị (allowlist, duyệt câu, duyệt bài), workflow GitHub Pages, `docs/setup-guide.md`. Chờ PO tạo GitHub/Supabase/Google rồi mới kiểm chứng thật.
 - Tạo Supabase + Google OAuth (PO đăng nhập, Team hướng dẫn), chạy schema, xác minh chặn allowlist.
 - Script import JSON → DB; màn Admin: allowlist, danh sách/duyệt/loại câu hỏi.

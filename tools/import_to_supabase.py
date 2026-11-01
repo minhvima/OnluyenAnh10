@@ -58,6 +58,19 @@ def lesson_rows():
             }
 
 
+def auth_headers(key, resolution):
+    headers = {
+        "apikey": key,
+        "Content-Type": "application/json",
+        "Prefer": f"resolution={resolution},return=minimal",
+    }
+    # New-style keys (sb_secret_...) are not JWTs and must only go in `apikey`;
+    # legacy service_role keys are JWTs and also go in Authorization.
+    if not key.startswith("sb_"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
+
+
 def post(url, key, table, rows, overwrite, conflict):
     resolution = "merge-duplicates" if overwrite else "ignore-duplicates"
     for i in range(0, len(rows), BATCH):
@@ -66,12 +79,7 @@ def post(url, key, table, rows, overwrite, conflict):
             f"{url}/rest/v1/{table}?on_conflict={conflict}",
             data=json.dumps(chunk).encode("utf-8"),
             method="POST",
-            headers={
-                "apikey": key,
-                "Authorization": f"Bearer {key}",
-                "Content-Type": "application/json",
-                "Prefer": f"resolution={resolution},return=minimal",
-            },
+            headers=auth_headers(key, resolution),
         )
         try:
             urllib.request.urlopen(req, timeout=60).read()
