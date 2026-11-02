@@ -44,7 +44,9 @@
 .timer { font: 700 22px ui-monospace, Consolas, monospace; padding: 0 14px; border-radius: 999px; border: 3px solid var(--c-primary); background: #fff; color: var(--c-primary); }
 .timer.warn { border-color: var(--c-accent); color: var(--c-accent); }
 .timer.urgent { background: var(--c-wrong-bg); border-color: var(--c-wrong); color: var(--c-wrong); }
-.test-panel .chip { min-width: 28px; height: 24px; padding: 0 4px; font-size: 12px; }
+.test-panel .chip { min-width: 30px; height: 28px; padding: 0 5px; font-size: 14px; }
+.test-panel .prog { font-size: 18px; font-weight: 700; color: var(--c-ink); margin-bottom: 12px; }
+.test-panel .chips { margin-bottom: 22px; gap: 6px; }
 .chip.done { background: var(--c-primary-soft); border-color: var(--c-primary); color: var(--c-primary); }
 .opt.picked { background: var(--c-primary-soft); border-color: var(--c-primary); box-shadow: 0 4px 0 var(--c-primary); }
 .opt.picked .key { outline: 3px solid var(--c-text); outline-offset: 1px; }
