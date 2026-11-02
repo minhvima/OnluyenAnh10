@@ -21,6 +21,8 @@ export interface Question {
   correct_answer: string;
   accepted_answers: string[];
   explanation: string;
+  /** Why each wrong answer is wrong: option id -> reason (choice types), typed wrong answer -> reason (fill in). */
+  why_wrong?: Record<string, string>;
   hint: string | null;
   tags?: string[];
 }

@@ -22,7 +22,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUESTION_COLS = [
     "question_id", "topic_code", "cognitive_level", "question_type", "prompt", "options",
     "correct_answer", "accepted_answers", "explanation", "hint", "tags", "media", "source",
-    "status", "version",
+    "status", "version", "why_wrong",
 ]
 LESSON_META = {"lesson_id", "topic_code", "order", "title", "estimated_minutes", "status"}
 BATCH = 200
@@ -107,10 +107,68 @@ def patch_lesson_content(url, key, lessons):
     print(f"  lessons: updated content of {len(lessons)} lessons (status untouched)")
 
 
+def patch_why_wrong(url, key, questions):
+    """Update only `why_wrong` of questions that already exist (needs db/migrations/2026-11-03_why_wrong.sql)."""
+    todo = [q for q in questions if q.get("why_wrong")]
+    for q in todo:
+        req = urllib.request.Request(
+            f"{url}/rest/v1/questions?question_id=eq.{q['question_id']}",
+            data=json.dumps({"why_wrong": q["why_wrong"]}).encode("utf-8"),
+            method="PATCH",
+            headers=auth_headers(key, "merge-duplicates"),
+        )
+        try:
+            urllib.request.urlopen(req, timeout=60).read()
+        except urllib.error.HTTPError as e:
+            sys.exit(f"questions PATCH {q['question_id']}: HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}"
+                     " (If it says the column does not exist, run db/migrations/2026-11-03_why_wrong.sql first.)")
+    print(f"  questions: updated why_wrong of {len(todo)} questions")
+
+
+CONTENT_COLS = ["prompt", "options", "correct_answer", "accepted_answers", "explanation", "hint", "why_wrong"]
+
+
+def changed_since(questions, backup_dir):
+    """Questions whose content differs from the JSON files saved in backup_dir (e.g. before an ambiguity fix)."""
+    old = {}
+    for path in sorted(glob.glob(os.path.join(ROOT, backup_dir, "topic_*.json"))):
+        with open(path, encoding="utf-8") as f:
+            for q in json.load(f):
+                old[q["question_id"]] = q
+    out = []
+    for q in questions:
+        o = old.get(q["question_id"])
+        if o is not None and any((o.get(c) or None) != (q.get(c) or None) for c in CONTENT_COLS if c != "why_wrong"):
+            out.append(q)
+    return out
+
+
+def patch_question_content(url, key, questions):
+    """Update only the text fields of existing questions; keeps `status`, `version` and other admin fields."""
+    for q in questions:
+        body = {c: q.get(c) for c in CONTENT_COLS if c in q}
+        req = urllib.request.Request(
+            f"{url}/rest/v1/questions?question_id=eq.{q['question_id']}",
+            data=json.dumps(body).encode("utf-8"),
+            method="PATCH",
+            headers=auth_headers(key, "merge-duplicates"),
+        )
+        try:
+            urllib.request.urlopen(req, timeout=60).read()
+        except urllib.error.HTTPError as e:
+            sys.exit(f"questions PATCH {q['question_id']}: HTTP {e.code}: {e.read().decode('utf-8', 'replace')[:300]}")
+    print(f"  questions: updated content of {len(questions)} questions (status untouched)")
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--update-questions", metavar="BACKUP_DIR",
+                    help="refresh text fields (prompt, options, answers, explanation, why_wrong) of the questions "
+                         "that differ from the JSON files in BACKUP_DIR, e.g. data_bank/review/backup_json_pre_ambig")
     ap.add_argument("--apply", action="store_true")
     ap.add_argument("--overwrite", action="store_true")
+    ap.add_argument("--update-why", action="store_true",
+                    help="only refresh the wrong-answer reasons (why_wrong) of existing questions")
     ap.add_argument("--update-lesson-content", action="store_true",
                     help="only refresh lesson content (e.g. after merge_lesson_ext.py); keeps approval status")
     args = ap.parse_args()
@@ -121,6 +179,8 @@ def main():
         sys.exit("Duplicate question_id in data_bank/json -- run tools/validate_questions.py first.")
     print(f"questions: {len(questions)}  lessons: {len(lessons)} (lesson status kept as in files)")
 
+    if args.update_questions:
+        print(f"  {len(changed_since(questions, args.update_questions))} questions differ from {args.update_questions}")
     if not args.apply:
         print("Dry-run only. Add --apply to send.")
         return
@@ -128,6 +188,14 @@ def main():
     if not url or not key:
         sys.exit("Set SUPABASE_URL and SUPABASE_SERVICE_KEY first.")
     url = url.rstrip("/")
+    if args.update_questions:
+        patch_question_content(url, key, changed_since(questions, args.update_questions))
+        print("Done.")
+        return
+    if args.update_why:
+        patch_why_wrong(url, key, questions)
+        print("Done.")
+        return
     if args.update_lesson_content:
         patch_lesson_content(url, key, lessons)
         print("Done.")

@@ -1,5 +1,5 @@
-import { shuffle } from './grading';
-import type { ChoiceOption, Level, MatchPair, Question } from './types';
+import { normalizeText, shuffle } from './grading';
+import type { Answer, ChoiceOption, Level, MatchPair, Question } from './types';
 
 export const LETTERS = ['A', 'B', 'C', 'D'] as const;
 
@@ -59,12 +59,43 @@ export function choiceForKey(key: string, choices: Choice[]): string | null {
   return pos >= 0 && pos < choices.length ? choices[pos].id : null;
 }
 
+/**
+ * The saved reason why the given WRONG answer is wrong, or null when there is none.
+ * Choice types look it up by option id; fill-in by the typed text (compared like the grader does).
+ */
+export function whyWrong(q: Question, answer: Answer): string | null {
+  const why = q.why_wrong;
+  if (!why || q.question_type === 'matching') return null;
+  if (q.question_type === 'fill_in_blank') {
+    if (typeof answer !== 'string') return null;
+    const typed = normalizeText(answer);
+    const hit = Object.keys(why).find((k) => normalizeText(k) === typed);
+    return hit && why[hit].trim() && why[hit] !== '??' ? why[hit] : null;
+  }
+  if (typeof answer !== 'string') return null;
+  const reason = why[answer];
+  return reason && reason.trim() && reason !== '??' ? reason : null;
+}
+
 /** Plain-text correct answer, shown after a wrong answer. */
 export function correctText(q: Question): string {
   if (q.question_type === 'fill_in_blank') return q.correct_answer;
   if (q.question_type === 'matching') return (q.options as MatchPair[]).map((p) => `${p.left} → ${p.right}`).join(' · ');
   const opt = (q.options as ChoiceOption[]).find((o) => o.id === q.correct_answer);
   return opt ? opt.text : q.correct_answer;
+}
+
+/** Plain-text version of what the student answered, for the review list. */
+export function givenText(q: Question, answer: Answer | undefined): string {
+  if (answer === undefined || answer === '') return '(chưa trả lời)';
+  if (q.question_type === 'fill_in_blank') return typeof answer === 'string' ? answer : '';
+  if (q.question_type === 'matching') {
+    if (!Array.isArray(answer)) return '';
+    const pairs = q.options as MatchPair[];
+    return pairs.map((p, i) => `${p.left} → ${answer[i] >= 0 && pairs[answer[i]] ? pairs[answer[i]].right : '…'}`).join(' · ');
+  }
+  const opt = (q.options as ChoiceOption[]).find((o) => o.id === answer);
+  return opt ? opt.text : String(answer);
 }
 
 const LEVEL_ORDER: Level[] = ['Recognition', 'Comprehension', 'Application'];

@@ -30,7 +30,7 @@ const topics: Row[] = T.map(([topic_code, name_vi, name_en, sort_order, phase, p
 
 const progress: Row[] = [];
 const tables: Record<string, Row[]> = {
-  topics, lessons, questions, lesson_progress: progress, attempts: [],
+  topics, lessons, questions, lesson_progress: progress, attempts: [], phase_test_runs: [],
   app_settings: [{ key: 'mastery_threshold', value: 0.8 }], profiles: [{ display_name: 'Minh' }],
 };
 
@@ -41,10 +41,10 @@ class Query implements PromiseLike<{ data: unknown; error: null; count: number }
   select(): this { return this; }
   eq(k: string, v: unknown): this { this.rows = this.rows.filter((r) => r[k] === v); return this; }
   overlaps(k: string, arr: string[]): this { this.rows = this.rows.filter((r) => ((r[k] as string[]) ?? []).some((x) => arr.includes(x))); return this; }
-  order(k: string): this { this.rows.sort((a, b) => (a[k] as number | string) < (b[k] as number | string) ? -1 : (a[k] as number | string) > (b[k] as number | string) ? 1 : 0); return this; }
+  order(k: string, opts?: { ascending?: boolean }): this { const d = opts?.ascending === false ? -1 : 1; this.rows.sort((a, b) => d * ((a[k] as number | string) < (b[k] as number | string) ? -1 : (a[k] as number | string) > (b[k] as number | string) ? 1 : 0)); return this; }
   range(): this { return this; }
   maybeSingle(): this { this.single = true; return this; }
-  insert(rows: Row | Row[]): this { tables[this.table].push(...(Array.isArray(rows) ? rows : [rows])); console.info('[preview] insert', this.table, rows); return this; }
+  insert(rows: Row | Row[]): this { tables[this.table].push(...(Array.isArray(rows) ? rows : [rows]).map((r) => ({ id: `run-${tables[this.table].length + 1}`, ...r }))); console.info('[preview] insert', this.table); return this; }
   upsert(row: Row): this {
     const i = tables[this.table].findIndex((r) => r.lesson_id === row.lesson_id);
     if (i >= 0) tables[this.table][i] = row; else tables[this.table].push(row);
@@ -76,3 +76,15 @@ export const supabase = {
 };
 export async function fetchAccess(): Promise<Role> { return 'admin'; }
 export function readAuthErrorFromUrl(): string | null { return null; }
+
+(window as unknown as Record<string, unknown>).__mockTables = tables;
+// Test helpers for the preview: mark lessons of a phase as practised (or clear everything).
+(window as unknown as Record<string, unknown>).__unlockPhase = (phase: number, upTo?: number) => {
+  const codes = new Set(topics.filter((t) => t.phase === phase).map((t) => t.topic_code));
+  const todo = lessons.filter((l) => codes.has(l.topic_code as string));
+  todo.slice(0, upTo ?? todo.length).forEach((l) => {
+    if (!progress.some((p) => p.lesson_id === l.lesson_id)) progress.push({ user_id: 'preview-user', lesson_id: l.lesson_id, status: 'in_progress', best_score: 60, last_score: 60, attempts_count: 1, mastered_at: null });
+  });
+  return `${todo.length} lessons in phase ${phase}`;
+};
+(window as unknown as Record<string, unknown>).__clearProgress = () => { progress.length = 0; (tables.phase_test_runs as Row[]).length = 0; };

@@ -2,12 +2,12 @@ import { gradeAnswer, parseMatchingKey } from '../grading';
 import type { AnswerRecord } from '../api';
 import { clear, h } from '../lib/dom';
 import { makeLookable } from '../lib/lookup';
-import { choiceForKey, correctText, orderOf, prepare, prepareWithOrder, type Prepared } from '../quiz';
+import { choiceForKey, correctText, orderOf, prepare, prepareWithOrder, whyWrong, type Prepared } from '../quiz';
 import type { SavedSession } from '../session-store';
 import { parseUnderline } from '../text';
 import type { Answer, MatchPair, Question } from '../types';
 
-function promptEl(q: Question): HTMLElement {
+export function promptEl(q: Question): HTMLElement {
   const p = h('p', { class: 'q', id: 'q-text', 'data-lk': 'en' });
   for (const seg of parseUnderline(q.prompt)) {
     const parts = seg.text.split(/(_{3,})/);
@@ -87,12 +87,22 @@ export function mountPractice(host: HTMLElement, questions: Question[], onDone: 
     render();
   }
 
-  function feedback(q: Question, ok: boolean): HTMLElement {
+  function feedback(prep: Prepared, ok: boolean, answer: Answer): HTMLElement {
+    const q = prep.q;
+    const reason = ok ? null : whyWrong(q, answer);
+    // For choice questions the right option is already shown in green, so the answer line is only for typed answers.
+    const showAnswer = !ok && (prep.kind === 'fill');
+    let chosen = '';
+    if (reason) {
+      const text = prep.kind === 'choice' ? prep.choices.find((c) => c.id === answer)?.text ?? '' : typeof answer === 'string' ? answer.trim() : '';
+      if (q.question_type === 'error_identification') chosen = 'Về phần em chọn: '; // the chosen part is correct, so "why wrong" would contradict
+      else chosen = text && text.length <= 32 ? `Vì sao “${text}” chưa đúng: ` : 'Vì sao đáp án em chọn chưa đúng: ';
+    }
     return h('div', { class: `fb ${ok ? 'ok' : 'bad'}` },
       h('h3', {}, ok ? '✓ Chuẩn rồi!' : '✗ Chưa đúng, không sao đâu!'),
-      // matching shows the right partner on each wrong row instead, which is shorter
-      !ok && q.question_type !== 'matching' ? h('p', {}, h('b', {}, 'Đáp án đúng: '), h('span', { 'data-lk': 'en' }, correctText(q))) : null,
-      h('p', { 'data-lk': 'mixed' }, q.explanation));
+      showAnswer ? h('p', {}, h('b', {}, 'Đáp án đúng: '), h('span', { 'data-lk': 'en' }, correctText(q))) : null,
+      reason ? h('p', { class: 'why' }, h('b', {}, chosen), h('span', { 'data-lk': 'mixed' }, reason)) : null,
+      h('p', { 'data-lk': 'mixed' }, ok ? q.explanation : h('span', {}, h('b', {}, 'Đáp án đúng vì: '), q.explanation)));
   }
 
   function finish(answer: Answer): void {
@@ -211,7 +221,7 @@ export function mountPractice(host: HTMLElement, questions: Question[], onDone: 
 
     let action: HTMLElement | null = null;
     if (entry) {
-      fbHost.append(feedback(prep.q, entry.ok));
+      fbHost.append(feedback(prep, entry.ok, entry.answer));
       if (isCurrent) {
         action = h('button', { class: 'btn', type: 'button', onclick: advance }, index + 1 >= questions.length ? 'Xem kết quả ' : 'Câu tiếp theo ', h('kbd', {}, 'Enter'));
       } else {

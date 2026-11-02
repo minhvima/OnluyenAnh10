@@ -1,14 +1,11 @@
-import { fetchLessonRefs, fetchProgress, fetchTopics, type LessonRef, type Progress } from '../api';
+import { fetchLessonRefs, fetchProgress, fetchRuns, fetchTopics, type LessonRef, type PhaseRun, type Progress } from '../api';
 import { h } from '../lib/dom';
 import { supabase } from '../lib/supabase';
+import { phaseSummaries, type PhaseSummary } from '../phase-data';
+import { PASS_SCORE } from '../phase-test';
+import { PHASES } from '../phases';
 import type { Topic } from '../types';
 
-const PHASES: Record<number, [string, string]> = {
-  1: ['Giai đoạn 1 · Nền tảng', 'tuần 1–4'],
-  2: ['Giai đoạn 2 · Mở rộng', 'tuần 5–7'],
-  3: ['Giai đoạn 3 · Biến đổi câu', 'tuần 8–11'],
-  4: ['Giai đoạn 4 · Hoàn thiện', 'tuần 12'],
-};
 // One colour per topic; none is the green/red used for right/wrong.
 const COLORS: [string, string][] = [
   ['#4f46e5', '#e0e7ff'], ['#0e7490', '#cffafe'], ['#a21caf', '#fae8ff'], ['#b45309', '#fef3c7'], ['#be185d', '#fce7f3'],
@@ -41,10 +38,34 @@ function pillFor(s: TopicStats): HTMLElement {
   return h('span', { class: 'pill todo' }, 'Chưa học');
 }
 
+/** Card under each phase: the phase test, disabled until every lesson of the phase was practised once. */
+function phaseTestCard(s: PhaseSummary): HTMLElement {
+  if (s.total === 0) return h('div', {});
+  const minutes = Math.round(s.plan.timeLimitS / 60);
+  const meta = `${s.plan.questions} câu · ${minutes} phút · đạt từ ${PASS_SCORE}/10`;
+  const status = s.attempts > 0
+    ? `Cao nhất ${(s.best ?? 0).toFixed(1)}/10 · ${s.attempts} lần làm${s.passed ? ' · ✓ Đã đạt' : ''}`
+    : s.unlocked ? 'Em đã sẵn sàng làm bài kiểm tra.' : `Mở khi em luyện hết các bài (${s.practiced}/${s.total} bài đã luyện).`;
+  return h('section', { class: s.unlocked ? 'ptest open' : 'ptest locked', 'aria-label': `Bài kiểm tra giai đoạn ${s.phase}` },
+    h('div', {}, h('h3', {}, `Bài kiểm tra ${PHASES[s.phase].title.split(' · ')[0]}`), h('p', { class: 'meta' }, meta), h('p', { class: 'st' }, status)),
+    h('div', { class: 'actions' },
+      s.unlocked
+        ? h('a', { class: 'btn', href: `#/phase/${s.phase}` }, s.attempts > 0 ? 'Xem / làm lại' : 'Làm bài kiểm tra')
+        : h('button', { class: 'btn', type: 'button', disabled: true, 'aria-disabled': 'true', title: 'Luyện hết các bài trong giai đoạn để mở' }, 'Chưa mở'),
+      s.unlocked ? null : h('a', { class: 'link', href: `#/phase/${s.phase}` }, 'Xem còn thiếu bài nào')));
+}
+
 export async function homeView(email: string): Promise<HTMLElement> {
   const root = h('main', { class: 'page' });
   try {
     const [topics, refs, progress] = await Promise.all([fetchTopics(), fetchLessonRefs(), fetchProgress()]);
+    let runs: PhaseRun[] = [];
+    try {
+      runs = await fetchRuns(); // fine if the history table does not exist yet
+    } catch {
+      runs = [];
+    }
+    const summaries = phaseSummaries(topics, refs, progress, runs, [1, 2, 3, 4]);
     let name = email.split('@')[0];
     if (supabase) {
       const { data } = await supabase.from('profiles').select('display_name').maybeSingle();
@@ -60,8 +81,7 @@ export async function homeView(email: string): Promise<HTMLElement> {
     for (const phase of [1, 2, 3, 4]) {
       const inPhase = topics.filter((t) => t.phase === phase);
       if (inPhase.length === 0) continue;
-      const [title, weeks] = PHASES[phase];
-      root.append(h('div', { class: 'phase' }, h('h2', {}, title), h('span', {}, weeks)));
+      root.append(h('div', { class: 'phase' }, h('h2', {}, PHASES[phase].title), h('span', {}, PHASES[phase].weeks)));
       const grid = h('div', { class: 'grid' });
       for (const t of inPhase) {
         const s = topicStats(refs, progress, t.topic_code);
@@ -75,6 +95,8 @@ export async function homeView(email: string): Promise<HTMLElement> {
             h('div', { class: 'meta' }, h('span', {}, `${s.mastered}/${s.total} bài đạt`), pillFor(s)))));
       }
       root.append(grid);
+      const sum = summaries.find((x) => x.phase === phase);
+      if (sum) root.append(phaseTestCard(sum));
     }
   } catch {
     root.append(h('p', { class: 'error', role: 'alert' }, 'Không tải được danh sách chủ điểm. Em kiểm tra mạng rồi tải lại trang nhé.'));

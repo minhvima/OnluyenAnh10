@@ -32,6 +32,17 @@
 - Sửa: (1) chỉ vẽ lại khi người đăng nhập thật sự đổi (`app/src/auth-events.ts`); (2) lưu bài đang làm vào `localStorage` (câu hỏi, đáp án đã chọn, thứ tự đáp án, câu hiện tại; hết hạn sau 24 giờ; theo từng người + từng bài) để tải lại trang hoặc trình duyệt giải phóng tab vẫn khôi phục được (`app/src/session-store.ts`). Hoàn thành bài hoặc bấm "Luyện thêm" thì xóa bản lưu.
 - Dữ liệu lưu chỉ nằm trong trình duyệt của em, không gửi đi đâu.
 
+## D8 — Lý do vì sao đáp án sai (2026-11-03, PO yêu cầu)
+- Khi em chọn sai, phản hồi hiện thêm "Vì sao '…' chưa đúng: …" rồi "Đáp án đúng vì: …". Câu tìm lỗi dùng dòng dẫn riêng ("Về phần em chọn") vì phần em chọn là phần đúng.
+- Dữ liệu ở cột mới `questions.why_wrong` (jsonb): dạng chọn đáp án khóa theo id đáp án; dạng điền từ khóa theo đáp án sai hay gặp (so khớp như hàm chấm). Cần chạy `db/migrations/2026-11-03_why_wrong.sql` một lần; app vẫn chạy khi chưa có cột. Câu ghép cặp không có (mỗi dòng sai đã hiện đáp án đúng).
+- Quy trình 2 lớp: agent soạn → agent khác tự giải lại rồi duyệt/sửa/bỏ từng lý do (`data_bank/why/`). Phạm vi hiện tại: chủ điểm Tenses (522 lý do, 179/196 câu). 13 chủ điểm còn lại chưa làm.
+- Phát hiện phụ: 7 câu trắc nghiệm có đáp án nhiễu thực ra cũng đúng → đã thay bằng dạng chắc chắn sai (Q_TENSES_041, 044, 050, 052, 071, 074, 099; bản sao lưu ở `data_bank/review/backup_json_pre_why/`). Tám câu điền từ có dạng gõ khác cũng đúng (Q117, 120, 122, 127, 128, 129, 133, 139): PO chọn viết lại để chỉ còn một đáp án; đã viết lại 6 câu và agent độc lập kiểm tra đạt; Q133 và Q139 giữ thêm dạng đúng tự nhiên (begins/will begin; has already finished/already finished) và nhận cả dạng viết tắt. Q_TENSES_156 (câu tìm lỗi mà chính 'lỗi' gây tranh cãi) chuyển sang danh sách chờ giáo viên.
+
+## D9 — Bài kiểm tra tổng thể cuối mỗi giai đoạn (2026-11-04, PO yêu cầu)
+- PO chọn: mở khóa khi mỗi bài trong giai đoạn đã luyện ít nhất 1 lần; bài kiểm tra Giai đoạn 4 chỉ gồm Cụm động từ & collocation.
+- Team quyết (lý do trong `docs/phase-test-spec.md`): số câu = số bài trong khoảng 20–40, 1 phút/câu, đạt 7/10, ưu tiên bài yếu và câu chưa gặp, không hiện đúng/sai đến khi nộp, hết giờ tự nộp, lưu tiến trình để không mất bài.
+- Lịch sử trong bảng mới `phase_test_runs` (migration `db/migrations/2026-11-04_phase_tests.sql`).
+
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
 - Thành công: em tự giác học đều; điểm ngữ pháp tăng; PO theo dõi được tiến độ; em hiểu bản chất.
