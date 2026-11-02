@@ -25,6 +25,32 @@ export function prepare(q: Question, rng: () => number = Math.random): Prepared 
   return { kind: 'choice', q, choices: ordered.map((o, i) => ({ id: o.id, text: o.text, letter: LETTERS[i] ?? String(i + 1) })) };
 }
 
+/** The display order of a prepared question, so it can be saved and rebuilt exactly. */
+export function orderOf(p: Prepared): string[] | number[] | null {
+  if (p.kind === 'choice') return p.choices.map((c) => c.id);
+  if (p.kind === 'match') return p.rights.map((r) => r.index);
+  return null;
+}
+
+/** Rebuild a question with a saved display order; falls back to a fresh shuffle if the order does not fit. */
+export function prepareWithOrder(q: Question, order: string[] | number[] | null): Prepared {
+  if (q.question_type === 'matching' && order) {
+    const pairs = q.options as MatchPair[];
+    const idx = order as number[];
+    const valid = idx.length === pairs.length && [...idx].sort((a, b) => a - b).every((v, i) => v === i);
+    if (valid) return { kind: 'match', q, lefts: pairs.map((p) => p.left), rights: idx.map((i) => ({ text: pairs[i].right, index: i })) };
+  }
+  if (q.question_type !== 'matching' && q.question_type !== 'fill_in_blank' && order) {
+    const opts = q.options as ChoiceOption[];
+    const ids = order as string[];
+    const ordered = ids.map((id) => opts.find((o) => o.id === id));
+    if (ids.length === opts.length && ordered.every((o): o is ChoiceOption => Boolean(o)) && new Set(ids).size === ids.length) {
+      return { kind: 'choice', q, choices: ordered.map((o, i) => ({ id: o.id, text: o.text, letter: LETTERS[i] ?? String(i + 1) })) };
+    }
+  }
+  return prepare(q);
+}
+
 /** Option id for a pressed key: A-D or 1-4 (display position), or null. */
 export function choiceForKey(key: string, choices: Choice[]): string | null {
   if (key.length !== 1) return null; // Enter, Escape, Tab... must never select an answer

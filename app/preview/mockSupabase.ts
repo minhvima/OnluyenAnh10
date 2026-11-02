@@ -64,7 +64,12 @@ export const supabase = {
   rpc: async () => ({ data: 'admin', error: null }),
   auth: {
     getSession: async () => ({ data: { session: { user: { id: 'preview-user', email: 'minh@example.com' } } } }),
-    onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+    // Like the real client, which re-emits SIGNED_IN whenever the tab becomes visible again.
+    // Tests can trigger it with window.__emitAuth('SIGNED_IN').
+    onAuthStateChange: (cb: (event: string, session: unknown) => void) => {
+      (window as unknown as { __emitAuth: (e: string) => void }).__emitAuth = (e) => cb(e, e === 'SIGNED_OUT' ? null : { user: { id: 'preview-user', email: 'minh@example.com' } });
+      return { data: { subscription: { unsubscribe() {} } } };
+    },
     signOut: async () => {},
     signInWithOAuth: async () => ({ error: null }),
   },

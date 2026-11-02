@@ -2,7 +2,8 @@ import { gradeAnswer, parseMatchingKey } from '../grading';
 import type { AnswerRecord } from '../api';
 import { clear, h } from '../lib/dom';
 import { makeLookable } from '../lib/lookup';
-import { choiceForKey, correctText, prepare, type Prepared } from '../quiz';
+import { choiceForKey, correctText, orderOf, prepare, prepareWithOrder, type Prepared } from '../quiz';
+import type { SavedSession } from '../session-store';
 import { parseUnderline } from '../text';
 import type { Answer, MatchPair, Question } from '../types';
 
@@ -30,7 +31,17 @@ interface Entry { answer: Answer; ok: boolean }
  * what was chosen and the explanation; the live question keeps its place.
  * Returns a cleanup function that removes the keyboard handler.
  */
-export function mountPractice(host: HTMLElement, questions: Question[], onDone: (records: AnswerRecord[]) => void): () => void {
+/** What has to be remembered to carry on after a reload: where we are, the answers, the display orders. */
+export type Progress = Pick<SavedSession, 'index' | 'orders' | 'answers'>;
+
+export interface PracticeOptions {
+  /** Carry on from this saved progress instead of starting at question 1. */
+  resume?: Progress;
+  /** Called after every change so the caller can save progress. */
+  onChange?: (p: Progress) => void;
+}
+
+export function mountPractice(host: HTMLElement, questions: Question[], onDone: (records: AnswerRecord[]) => void, opts: PracticeOptions = {}): () => void {
   const records: AnswerRecord[] = [];
   const history: Entry[] = []; // history[i] exists once question i has been answered
   const preps: Prepared[] = []; // fixed per question so the shuffled order never changes while reviewing
@@ -39,6 +50,24 @@ export function mountPractice(host: HTMLElement, questions: Question[], onDone: 
   let viewing: number | null = null; // an earlier question opened for review
   let submit: (() => void) | null = null;
   let live = true; // the live question accepts answers right now
+
+  const rs = opts.resume;
+  if (rs && rs.index < questions.length && (rs.answers.length === rs.index || rs.answers.length === rs.index + 1)) {
+    rs.answers.forEach((a, i) => {
+      records.push({ question_id: questions[i].question_id, answer: serialize(a.answer), correct: a.ok, time_ms: a.time_ms });
+      history[i] = { answer: a.answer, ok: a.ok };
+    });
+    rs.orders.forEach((o, i) => { if (i < questions.length && o) preps[i] = prepareWithOrder(questions[i], o); });
+    index = rs.index;
+  }
+
+  function emit(): void {
+    opts.onChange?.({
+      index,
+      orders: questions.map((_, i) => (preps[i] ? orderOf(preps[i]) : null)),
+      answers: history.map((e, i) => ({ answer: e.answer, ok: e.ok, time_ms: records[i]?.time_ms ?? 0 })),
+    });
+  }
 
   const prepFor = (i: number): Prepared => (preps[i] ??= prepare(questions[i]));
   const shownIndex = (): number => viewing ?? index;
@@ -195,6 +224,7 @@ export function mountPractice(host: HTMLElement, questions: Question[], onDone: 
         : 'Phím tắt: Enter tiếp tục · ←/→ xem câu khác · T tra từ')));
     void makeLookable(host);
     if (entry && action) queueMicrotask(() => action?.focus());
+    emit();
   }
 
   function choose(id: string): void {

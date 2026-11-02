@@ -27,6 +27,11 @@
 - Nối bài với câu hỏi bằng `practice_tags` ∩ `tags` của câu (không đổi schema).
 - Bài đạt khi ≥ 80% (đọc từ `app_settings`), chưa đạt chỉ cảnh báo, không khóa bài sau.
 
+## D7 — Không để mất bài đang làm (sửa lỗi nghiêm trọng, 2026-11-02)
+- Nguyên nhân: supabase-js phát lại `SIGNED_IN` mỗi khi tab hiện lại; app vẽ lại toàn trang khi nhận sự kiện đó nên bỏ bài đang làm và bốc 10 câu mới.
+- Sửa: (1) chỉ vẽ lại khi người đăng nhập thật sự đổi (`app/src/auth-events.ts`); (2) lưu bài đang làm vào `localStorage` (câu hỏi, đáp án đã chọn, thứ tự đáp án, câu hiện tại; hết hạn sau 24 giờ; theo từng người + từng bài) để tải lại trang hoặc trình duyệt giải phóng tab vẫn khôi phục được (`app/src/session-store.ts`). Hoàn thành bài hoặc bấm "Luyện thêm" thì xóa bản lưu.
+- Dữ liệu lưu chỉ nằm trong trình duyệt của em, không gửi đi đâu.
+
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
 - Thành công: em tự giác học đều; điểm ngữ pháp tăng; PO theo dõi được tiến độ; em hiểu bản chất.

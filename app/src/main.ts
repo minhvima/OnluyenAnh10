@@ -15,6 +15,7 @@ import './styles/app.css';
 import './styles/learn.css';
 import { clear, h } from './lib/dom';
 import { fetchAccess, readAuthErrorFromUrl, supabase, type Role } from './lib/supabase';
+import { shouldRerender } from './auth-events';
 import { adminView } from './views/admin';
 import { homeView } from './views/home';
 import { leaveLesson, lessonView } from './views/lesson';
@@ -36,6 +37,7 @@ function shell(email: string, role: Role, content: HTMLElement): HTMLElement {
 }
 
 let renderId = 0;
+let shownForUserId: string | null = null; // who the current screen was built for
 
 async function render(): Promise<void> {
   const mine = ++renderId;
@@ -46,6 +48,7 @@ async function render(): Promise<void> {
   const { data } = await supabase.auth.getSession();
   if (stale()) return;
   const session = data.session;
+  shownForUserId = session?.user.id ?? null;
   if (!session) {
     const err = readAuthErrorFromUrl();
     root.append(loginView(err ? 'Email này chưa được phép đăng ký. Hãy nhờ phụ huynh thêm email vào danh sách.' : null));
@@ -75,9 +78,10 @@ async function render(): Promise<void> {
 }
 
 if (supabase) {
-  // Token refreshes also fire this event; re-render only on real sign-in / sign-out changes.
-  supabase.auth.onAuthStateChange((event) => {
-    if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'INITIAL_SESSION') void render();
+  // supabase-js emits SIGNED_IN again whenever the tab becomes visible; rebuilding then wiped a lesson in
+  // progress. Rebuild only when the signed-in person actually changes (see auth-events.ts).
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (shouldRerender(event, session?.user.id ?? null, shownForUserId)) void render();
   });
 }
 window.addEventListener('hashchange', () => void render());

@@ -3,7 +3,8 @@ import { clear, h } from '../lib/dom';
 import { lookupBar, makeLookable } from '../lib/lookup';
 import { correctText, pickQuestions } from '../quiz';
 import type { Lesson, Question } from '../types';
-import { mountPractice } from './practice';
+import { browserStore, clearSession, loadSession, saveSession as saveProgress, sessionKey } from '../session-store';
+import { mountPractice, type Progress } from './practice';
 import { renderTheory } from './theory';
 
 const SESSION_SIZE = 10;
@@ -42,14 +43,43 @@ export async function lessonView(lessonId: string, userId: string): Promise<HTML
   const host = h('div', {});
   practice.append(lookupBar(), host);
 
+  // An unfinished session is kept in the browser: switching tabs, a reload or a discarded tab must not lose it.
+  const store = browserStore();
+  const key = sessionKey(userId, lesson.lesson_id);
+
+  const begin = (picked: Question[], resume?: Progress): void => {
+    stopPractice?.();
+    const qids = picked.map((q) => q.question_id);
+    stopPractice = mountPractice(host, picked, (records) => { clearSession(store, key); void finished(records, picked); }, {
+      resume,
+      onChange: (p) => saveProgress(store, key, { qids, ...p }),
+    });
+  };
+
+  /** Pick questions again (first visit, or "Luyện thêm"). */
   const start = (): void => {
     stopPractice?.();
+    clearSession(store, key);
     const picked = pickQuestions(pool, SESSION_SIZE);
     if (picked.length === 0) {
       host.replaceChildren(h('p', { class: 'hint' }, 'Bài này chưa có câu luyện tập. Em xem lý thuyết trước nhé.'));
       return;
     }
-    stopPractice = mountPractice(host, picked, (records) => void finished(records, picked));
+    begin(picked);
+  };
+
+  /** Carry on with a saved session when every saved question is still available. */
+  const resumeOrStart = (): void => {
+    const saved = loadSession(store, key);
+    if (saved) {
+      const byId = new Map(pool.map((q) => [q.question_id, q] as const));
+      const qs = saved.qids.map((id) => byId.get(id));
+      if (qs.every((q): q is Question => q !== undefined)) {
+        begin(qs, saved);
+        return;
+      }
+    }
+    start();
   };
 
   async function finished(records: AnswerRecord[], picked: Question[]): Promise<void> {
@@ -92,7 +122,7 @@ export async function lessonView(lessonId: string, userId: string): Promise<HTML
     h('div', { class: 'crumbbar' }, h('a', { class: 'back', href: `#/topic/${lesson.topic_code}` }, '‹ Về danh sách bài'), ` · Bài ${lesson.ord}/${siblings.length} · khoảng ${lesson.estimated_minutes} phút lý thuyết`),
     h('div', { class: 'lesson-wrap' }, theory, practice));
   void makeLookable(theory);
-  start();
+  resumeOrStart();
   return root;
 }
 
