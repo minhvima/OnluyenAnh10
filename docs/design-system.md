@@ -57,6 +57,10 @@ Mockup xem được: `docs/mockups/learn-screen.html` (mở bằng trình duyệ
 ### Độ tương phản chữ tiếng Việt (v2.1)
 Các dòng nghĩa tiếng Việt, mục tiêu bài, ví dụ dịch chuyển từ xám sang gần đen (`#0B0B1A`, tương phản 15.8:1 trên nền xanh nhạt); chữ phụ còn lại đậm hơn (`#334155`, 9.2:1).
 
+### Chỉnh sửa v2.2 (PO)
+- **Phần dịch tiếng Việt** dùng màu riêng `#7C2D12` (nâu đỏ), tương phản 7.6:1 trên nền khung truyện, ≥ 8.4:1 trên các nền khác; chữ tiếng Anh vẫn gần đen. Các đoạn tiếng Việt giải thích khác giữ màu đen.
+- **Xem lại câu đã làm:** hàng chip `1✓ 2✗ …` phía trên câu hỏi (✓/✗ kèm màu). Bấm chip đã làm để xem lại câu đó (đáp án đã chọn, đáp án đúng, lời giải; không sửa được); nút "Về câu đang làm" hoặc phím Enter quay lại, phím ←/→ chuyển giữa các câu đã làm. Câu đang làm giữ nguyên thứ tự đáp án và chưa trả lời.
+
 ### Việc kéo theo về dữ liệu (cần PO biết)
 Bài học hiện chỉ có công thức và ví dụ dạng chữ thường, **chưa có nhãn thành phần câu**. Để hiển thị như mockup cần bổ sung dữ liệu cho từng bài:
 - `examples`: danh sách câu, mỗi câu tách thành các phần `{"t": "Lan", "r": "S"}`, kèm nghĩa tiếng Việt và nhãn cách dùng.

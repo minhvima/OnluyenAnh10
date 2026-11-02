@@ -22,18 +22,31 @@ function promptEl(q: Question): HTMLElement {
 
 const serialize = (a: Answer): string => (Array.isArray(a) ? JSON.stringify(a) : a);
 
+interface Entry { answer: Answer; ok: boolean }
+
 /**
  * Runs one practice session: one question at a time, instant feedback, locked options.
+ * Answered questions can be opened again (chips above the question, or the arrow keys) to see
+ * what was chosen and the explanation; the live question keeps its place.
  * Returns a cleanup function that removes the keyboard handler.
  */
 export function mountPractice(host: HTMLElement, questions: Question[], onDone: (records: AnswerRecord[]) => void): () => void {
   const records: AnswerRecord[] = [];
-  let index = 0;
-  let cur: Prepared;
-  let answered = false;
-  let startedAt = 0;
+  const history: Entry[] = []; // history[i] exists once question i has been answered
+  const preps: Prepared[] = []; // fixed per question so the shuffled order never changes while reviewing
+  const startedAt: number[] = [];
+  let index = 0; // the live question
+  let viewing: number | null = null; // an earlier question opened for review
   let submit: (() => void) | null = null;
-  let next: HTMLButtonElement | null = null;
+  let live = true; // the live question accepts answers right now
+
+  const prepFor = (i: number): Prepared => (preps[i] ??= prepare(questions[i]));
+  const shownIndex = (): number => viewing ?? index;
+
+  function go(target: number): void {
+    viewing = target === index ? null : target;
+    render();
+  }
 
   function advance(): void {
     if (index + 1 >= questions.length) {
@@ -41,11 +54,11 @@ export function mountPractice(host: HTMLElement, questions: Question[], onDone: 
       return;
     }
     index++;
-    show();
+    viewing = null;
+    render();
   }
 
-  function feedback(ok: boolean): HTMLElement {
-    const q = cur.q;
+  function feedback(q: Question, ok: boolean): HTMLElement {
     return h('div', { class: `fb ${ok ? 'ok' : 'bad'}` },
       h('h3', {}, ok ? '✓ Chuẩn rồi!' : '✗ Chưa đúng, không sao đâu!'),
       // matching shows the right partner on each wrong row instead, which is shorter
@@ -53,134 +66,168 @@ export function mountPractice(host: HTMLElement, questions: Question[], onDone: 
       h('p', { 'data-lk': 'mixed' }, q.explanation));
   }
 
-  function finish(answer: Answer, fbHost: HTMLElement): boolean {
-    answered = true;
-    const ok = gradeAnswer(cur.q, answer);
-    records.push({ question_id: cur.q.question_id, answer: serialize(answer), correct: ok, time_ms: Math.round(performance.now() - startedAt) });
-    fbHost.replaceChildren(feedback(ok));
-    void makeLookable(fbHost);
-    if (next) {
-      next.hidden = false;
-      next.focus();
-    }
-    submit = null;
-    return ok;
+  function finish(answer: Answer): void {
+    const q = questions[index];
+    const ok = gradeAnswer(q, answer);
+    records.push({ question_id: q.question_id, answer: serialize(answer), correct: ok, time_ms: Math.round(performance.now() - (startedAt[index] ?? performance.now())) });
+    history[index] = { answer, ok };
+    render();
   }
 
-  function show(): void {
-    cur = prepare(questions[index]);
-    answered = false;
-    startedAt = performance.now();
+  /** Row of numbered chips: answered ones can be opened again, the others are just markers. */
+  function chips(shown: number): HTMLElement {
+    const nav = h('div', { class: 'chips', role: 'group', 'aria-label': 'Các câu trong bài' });
+    questions.forEach((_, i) => {
+      const e = history[i];
+      const label = e ? `${i + 1}${e.ok ? '✓' : '✗'}` : String(i + 1);
+      const cls = `chip ${e ? (e.ok ? 'ok' : 'bad') : i === index ? 'cur' : 'todo'}`;
+      const aria = e ? `Câu ${i + 1}, đã làm, ${e.ok ? 'đúng' : 'sai'}. Bấm để xem lại` : i === index ? `Câu ${i + 1}, đang làm` : `Câu ${i + 1}, chưa làm`;
+      const clickable = Boolean(e) || i === index;
+      const el = clickable
+        ? h('button', { class: cls, type: 'button', 'aria-label': aria, onclick: () => go(i) }, label)
+        : h('span', { class: cls, 'aria-label': aria }, label);
+      if (i === shown) el.setAttribute('aria-current', 'step');
+      nav.append(el);
+    });
+    return nav;
+  }
+
+  function render(): void {
     clear(host);
-    const right = records.filter((r) => r.correct).length;
+    submit = null;
+    const shown = shownIndex();
+    const prep = prepFor(shown);
+    const entry = history[shown] ?? null;
+    const isCurrent = shown === index;
+    live = entry === null && isCurrent;
+    if (live && startedAt[index] === undefined) startedAt[index] = performance.now();
     const fbHost = h('div', { role: 'status', 'aria-live': 'polite' });
-    let extra: HTMLElement | null = null; // matching: the Kiểm tra button shares the bottom row with Câu tiếp theo
-    next = h('button', { class: 'btn', type: 'button', hidden: true, onclick: advance },
-      index + 1 >= questions.length ? 'Xem kết quả ' : 'Câu tiếp theo ', h('kbd', {}, 'Enter')) as HTMLButtonElement;
+    let extra: HTMLElement | null = null; // matching: the Kiểm tra button shares the bottom row
 
     host.append(
       h('div', { class: 'prog' },
-        h('span', {}, `Câu ${index + 1}/${questions.length}`),
-        h('div', { class: 'bar', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(questions.length), 'aria-valuenow': String(index), 'aria-label': 'Tiến độ bài' },
-          h('i', { style: `width:${(index / questions.length) * 100}%` })),
-        h('span', {}, `Đúng ${right}/${records.length}`)),
-      promptEl(cur.q));
+        h('span', {}, `Câu ${shown + 1}/${questions.length}`), chips(shown)),
+      promptEl(prep.q));
 
-    if (cur.kind === 'choice') {
+    if (prep.kind === 'choice') {
       const box = h('div', { class: 'opts', role: 'group', 'aria-labelledby': 'q-text' });
-      for (const c of cur.choices) {
+      for (const c of prep.choices) {
         const btn = h('button', { class: 'opt', type: 'button', 'data-k': c.letter, 'data-id': c.id },
           h('span', { class: 'key' }, c.letter), h('span', { 'data-lk': 'en' }, c.text)) as HTMLButtonElement;
-        btn.addEventListener('click', () => choose(c.id));
+        if (entry) {
+          btn.disabled = true;
+          if (c.id === prep.q.correct_answer) {
+            btn.classList.add('right');
+            btn.append(h('span', { class: 'mark' }, '✓ Đúng'));
+          } else if (c.id === entry.answer) {
+            btn.classList.add('wrong');
+            btn.append(h('span', { class: 'mark' }, '✗ Chưa đúng'));
+          }
+        } else btn.addEventListener('click', () => choose(c.id));
         box.append(btn);
       }
       host.append(box);
-    } else if (cur.kind === 'fill') {
+    } else if (prep.kind === 'fill') {
       const input = h('input', { type: 'text', 'aria-label': 'Câu trả lời của em', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: 'Gõ đáp án…' }) as HTMLInputElement;
-      const check = h('button', { class: 'btn', type: 'submit' }, 'Kiểm tra');
+      const check = h('button', { class: 'btn', type: 'submit' }, 'Kiểm tra') as HTMLButtonElement;
       const form = h('form', { class: 'fill' }, input, check);
-      const run = (): void => {
-        if (answered || input.value.trim() === '') return;
-        const ok = finish(input.value, fbHost);
+      if (entry) {
+        input.value = String(entry.answer);
         input.disabled = true;
-        input.classList.add(ok ? 'right' : 'wrong');
-        (check as HTMLButtonElement).disabled = true;
-      };
-      form.addEventListener('submit', (e) => { e.preventDefault(); run(); });
+        input.classList.add(entry.ok ? 'right' : 'wrong');
+        check.hidden = true;
+      } else {
+        form.addEventListener('submit', (e) => { e.preventDefault(); run(); });
+        submit = run;
+        queueMicrotask(() => input.focus());
+      }
+      function run(): void {
+        if (!live || input.value.trim() === '') return;
+        finish(input.value);
+      }
       host.append(form);
-      submit = run;
-      queueMicrotask(() => input.focus());
     } else {
-      const m = cur;
-      const rows = m.lefts.map((left) => {
+      const m = prep;
+      const key = parseMatchingKey(m.q.correct_answer);
+      const rows = m.lefts.map((left, i) => {
         const sel = h('select', { 'aria-label': `Ghép với: ${left}` }, h('option', { value: '' }, '— chọn —'),
           ...m.rights.map((r) => h('option', { value: String(r.index) }, r.text))) as HTMLSelectElement;
         const mark = h('span', { class: 'mark' });
-        return { sel, mark, row: h('div', { class: 'pair' }, h('span', { 'data-lk': 'en' }, left), sel, mark) };
+        const row = h('div', { class: 'pair' }, h('span', { 'data-lk': 'en' }, left), sel, mark);
+        if (entry) {
+          const given = (entry.answer as number[])[i];
+          sel.value = String(given);
+          sel.disabled = true;
+          const ok = given === key[i];
+          row.classList.add(ok ? 'right' : 'wrong');
+          mark.textContent = ok ? '✓' : '✗';
+          if (!ok) row.append(h('span', { class: 'fix', 'data-lk': 'en' }, `Đúng: ${(m.q.options as MatchPair[])[key[i]]?.right ?? ''}`));
+        }
+        return { sel, row };
       });
       const note = h('p', { class: 'hint', role: 'status' });
-      const check = h('button', { class: 'btn', type: 'button' }, 'Kiểm tra') as HTMLButtonElement;
-      const run = (): void => {
-        if (answered) return;
-        if (rows.some((r) => r.sel.value === '')) { note.textContent = 'Em ghép đủ các cặp rồi bấm Kiểm tra nhé.'; return; }
-        const answer = rows.map((r) => Number(r.sel.value));
-        finish(answer, fbHost);
-        const key = parseMatchingKey(m.q.correct_answer);
-        rows.forEach((r, i) => {
-          const ok = answer[i] === key[i];
-          r.row.classList.add(ok ? 'right' : 'wrong');
-          r.mark.textContent = ok ? '✓' : '✗';
-          if (!ok) r.row.append(h('span', { class: 'fix', 'data-lk': 'en' }, `Đúng: ${(m.q.options as MatchPair[])[key[i]]?.right ?? ''}`));
-          r.sel.disabled = true;
-        });
-        check.hidden = true;
-      };
-      check.addEventListener('click', run);
       host.append(h('div', { class: 'pairs' }, ...rows.map((r) => r.row)), note);
-      extra = check;
-      submit = run;
+      if (!entry) {
+        const check = h('button', { class: 'btn', type: 'button' }, 'Kiểm tra') as HTMLButtonElement;
+        function run(): void {
+          if (!live) return;
+          if (rows.some((r) => r.sel.value === '')) { note.textContent = 'Em ghép đủ các cặp rồi bấm Kiểm tra nhé.'; return; }
+          finish(rows.map((r) => Number(r.sel.value)));
+        }
+        check.addEventListener('click', run);
+        extra = check;
+        submit = run;
+      }
     }
 
-    host.append(fbHost, h('div', { class: 'row' }, next, extra,
-      h('span', { class: 'hint' }, cur.kind === 'choice'
-        ? 'Phím tắt: A–D hoặc 1–4 chọn · Enter câu tiếp · T tra từ'
-        : 'Enter: kiểm tra, rồi câu tiếp · T tra từ')));
+    let action: HTMLElement | null = null;
+    if (entry) {
+      fbHost.append(feedback(prep.q, entry.ok));
+      if (isCurrent) {
+        action = h('button', { class: 'btn', type: 'button', onclick: advance }, index + 1 >= questions.length ? 'Xem kết quả ' : 'Câu tiếp theo ', h('kbd', {}, 'Enter'));
+      } else {
+        action = h('button', { class: 'btn', type: 'button', onclick: () => go(index) }, 'Về câu đang làm ', h('kbd', {}, 'Enter'));
+      }
+    }
+    host.append(fbHost, h('div', { class: 'row' }, action, extra,
+      h('span', { class: 'hint' }, live
+        ? (prep.kind === 'choice' ? 'Phím tắt: A–D hoặc 1–4 chọn · ←/→ xem lại · T tra từ' : 'Enter: kiểm tra · ←/→ xem lại · T tra từ')
+        : 'Phím tắt: Enter tiếp tục · ←/→ xem câu khác · T tra từ')));
     void makeLookable(host);
+    if (entry && action) queueMicrotask(() => action?.focus());
   }
 
   function choose(id: string): void {
-    if (answered || cur.kind !== 'choice') return;
-    const ok = finish(id, host.querySelector('[role=status]') as HTMLElement);
-    for (const b of host.querySelectorAll<HTMLButtonElement>('.opt')) {
-      b.disabled = true;
-      const isRight = b.dataset.id === cur.q.correct_answer;
-      if (isRight) {
-        b.classList.add('right');
-        b.append(h('span', { class: 'mark' }, '✓ Đúng'));
-      } else if (b.dataset.id === id && !ok) {
-        b.classList.add('wrong');
-        b.append(h('span', { class: 'mark' }, '✗ Chưa đúng'));
-      }
-    }
+    if (!live || prepFor(index).kind !== 'choice') return;
+    finish(id);
   }
 
   function onKey(e: KeyboardEvent): void {
     if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target as HTMLElement;
-    if (t.closest('input,select,textarea')) return;
+    if (t.closest?.('input,select,textarea')) return;
     if (document.getElementById('pop')?.hidden === false) return;
-    if (!answered && cur.kind === 'choice') {
-      const id = choiceForKey(e.key, cur.choices);
+    const shown = shownIndex();
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const target = shown + (e.key === 'ArrowLeft' ? -1 : 1);
+      const reachable = target >= 0 && target <= index && (history[target] !== undefined || target === index);
+      if (reachable) { e.preventDefault(); go(target); }
+      return;
+    }
+    const prep = prepFor(shown);
+    if (live && prep.kind === 'choice') {
+      const id = choiceForKey(e.key, prep.choices);
       if (id) { e.preventDefault(); choose(id); return; }
     }
-    if (e.key === 'Enter' && !t.closest('button,a')) {
+    if (e.key === 'Enter' && !t.closest?.('button,a')) {
       e.preventDefault();
-      if (answered) advance();
-      else if (submit) submit();
+      if (live) submit?.();
+      else if (shown === index) advance();
+      else go(index);
     }
   }
 
   document.addEventListener('keydown', onKey);
-  show();
+  render();
   return () => document.removeEventListener('keydown', onKey);
 }

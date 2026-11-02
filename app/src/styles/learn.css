@@ -55,7 +55,7 @@
 .sec .dot { width: 12px; height: 12px; border-radius: 50%; flex: none; }
 .story { background: var(--c-primary-soft); border-radius: var(--radius-sm); padding: 12px 16px; }
 .story p { margin: 4px 0; }
-.vi { color: var(--c-ink); font-size: 16px; display: block; }
+.vi { color: var(--c-vi); font-size: 16px; display: block; }
 .observe { margin: 0; padding-left: 22px; color: var(--c-ink); }
 .observe li { margin: 4px 0; }
 
@@ -100,6 +100,14 @@ details.card-q summary { cursor: pointer; font-weight: 700; }
 
 /* ---- practice ---- */
 .prog { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; color: var(--c-muted); font-size: 15px; }
+.chips { flex: 1; display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.chip { min-width: 30px; height: 26px; padding: 0 6px; border-radius: 8px; border: 2px solid var(--c-border); background: #fff; color: var(--c-muted); font: 700 13px var(--font-head); display: inline-grid; place-items: center; line-height: 1; }
+button.chip { cursor: pointer; }
+.chip.ok { border-color: var(--c-correct); background: var(--c-correct-bg); color: var(--c-correct); }
+.chip.bad { border-color: var(--c-wrong); background: var(--c-wrong-bg); color: var(--c-wrong); }
+.chip.cur { border-color: var(--c-primary); background: var(--c-primary); color: #fff; }
+.chip[aria-current="step"] { outline: 3px solid var(--c-sun); outline-offset: 1px; }
+.chip:focus-visible { outline: 3px solid var(--c-sun); outline-offset: 1px; }
 .bar { flex: 1; height: 14px; border-radius: 999px; background: var(--c-primary-soft); border: 2px solid var(--c-border); overflow: hidden; }
 .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--c-primary), #06b6d4); border-radius: 999px; }
 .q { font: 600 22px/1.35 var(--font-head); margin: 2px 0 12px; }

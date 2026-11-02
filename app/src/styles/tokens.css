@@ -5,6 +5,7 @@
   --c-text: #1e1b4b;
   --c-ink: #0b0b1a;        /* Vietnamese reading text: near black for contrast */
   --c-muted: #334155;
+  --c-vi: #7c2d12;         /* Vietnamese translations: warm brown-red, 7.6:1 on the pale story box */
   --c-primary: #4f46e5;
   --c-primary-text: #ffffff;
   --c-primary-soft: #e0e7ff;
@@ -33,6 +34,7 @@
   --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* author display rules must never un-hide hidden elements */
 body { margin: 0; background: var(--c-bg); color: var(--c-text); font-family: var(--font-body); font-size: 17px; line-height: 1.55; }
 h1, h2, h3 { font-family: var(--font-head); line-height: 1.25; margin: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
