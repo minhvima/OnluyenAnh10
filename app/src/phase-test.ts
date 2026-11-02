@@ -19,6 +19,14 @@ export function blueprint(lessonCount: number): Blueprint {
   return { questions, timeLimitS: questions * SECONDS_PER_QUESTION, passScore: PASS_SCORE };
 }
 
+/** End-of-topic test: two questions per lesson (at least MIN_QUESTIONS), so every lesson of the topic is asked. */
+export function topicBlueprint(lessonCount: number): Blueprint {
+  const questions = Math.min(MAX_QUESTIONS, Math.max(MIN_QUESTIONS, lessonCount * 2));
+  return { questions, timeLimitS: questions * SECONDS_PER_QUESTION, passScore: PASS_SCORE };
+}
+
+export type TestUnit = 'giai đoạn' | 'chủ điểm';
+
 export interface PhaseProgress { total: number; practiced: number; unlocked: boolean }
 
 /** The test opens once every lesson of the phase has been practised at least once. */
@@ -173,7 +181,7 @@ export interface Feedback { headline: string; praise: string; advice: string; sh
 const lessonLabel = (w: WeakLesson, topicName: (code: string) => string): string => `Bài ${w.ord} · ${w.title} (${topicName(w.topic_code)})`;
 
 /** Encouragement, what is still weak even if the test is passed, and what to do next. */
-export function feedbackFor(r: TestResult, topicName: (code: string) => string, previousScore: number | null): Feedback {
+export function feedbackFor(r: TestResult, topicName: (code: string) => string, previousScore: number | null, unit: TestUnit = 'giai đoạn'): Feedback {
   const headline =
     r.score >= 9 ? 'Xuất sắc!' : r.score >= 8 ? 'Rất tốt!' : r.passed ? 'Đạt rồi, giỏi lắm!' : r.score >= 5 ? 'Gần đạt rồi, cố thêm chút nữa nhé!' : 'Không sao, bài này giúp em biết cần ôn gì';
 
@@ -194,12 +202,14 @@ export function feedbackFor(r: TestResult, topicName: (code: string) => string, 
       ? `Dù đã đạt, em vẫn còn chỗ chưa thật vững: ${list}. Em nên học lại các bài này rồi làm lại bài kiểm tra để chắc hơn.`
       : `Em nên học lại các bài sau rồi làm lại bài kiểm tra: ${list}.`;
   } else if (r.passed) {
-    advice = 'Em nắm vững cả giai đoạn này. Em có thể sang giai đoạn tiếp theo, và làm lại bài kiểm tra bất cứ lúc nào để ôn.';
+    advice = unit === 'chủ điểm'
+      ? 'Em nắm vững cả chủ điểm này. Em có thể sang chủ điểm tiếp theo, và làm lại bài kiểm tra bất cứ lúc nào để ôn.'
+      : 'Em nắm vững cả giai đoạn này. Em có thể sang giai đoạn tiếp theo, và làm lại bài kiểm tra bất cứ lúc nào để ôn.';
   } else {
     advice = 'Các câu sai rải rác ở nhiều bài. Em xem lại lý thuyết từng bài, luyện thêm rồi làm lại bài kiểm tra nhé.';
   }
 
-  const short = r.weakTopics.length > 0 ? `Cần ôn: ${r.weakTopics.map(topicName).join(', ')}` : r.passed ? 'Vững cả giai đoạn' : 'Câu sai rải rác ở nhiều bài';
+  const short = r.weakTopics.length > 0 ? `Cần ôn: ${r.weakTopics.map(topicName).join(', ')}` : r.passed ? `Vững cả ${unit}` : 'Câu sai rải rác ở nhiều bài';
   return { headline, praise, advice, short };
 }
 

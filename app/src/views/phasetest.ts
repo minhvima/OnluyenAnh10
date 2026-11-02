@@ -1,12 +1,12 @@
 import { saveRun, type PhaseRun } from '../api';
 import { clear, h } from '../lib/dom';
 import { lookupBar, makeLookable } from '../lib/lookup';
-import { buildTest, loadBank, loadPhase, type PhaseData } from '../phase-data';
+import { buildTest, loadBank, loadPhase, loadTopicTest, type PhaseData } from '../phase-data';
 import { PASS_SCORE, feedbackFor, formatDuration, gradeTest, remainingSeconds, summarize, type TestResult } from '../phase-test';
 import { PHASES } from '../phases';
 import { choiceForKey, correctText, givenText, orderOf, prepareWithOrder, whyWrong, type Prepared } from '../quiz';
 import { browserStore } from '../session-store';
-import { clearTest, loadTest, saveTest, testKey, type SavedTest } from '../test-store';
+import { clearTest, loadTest, saveTest, testKey, topicTestKey, type SavedTest } from '../test-store';
 import type { Answer, Question } from '../types';
 import { promptEl } from './practice';
 
@@ -27,6 +27,7 @@ const mmss = (s: number): string => `${String(Math.floor(s / 60)).padStart(2, '0
 interface RunCfg {
   host: HTMLElement;
   phase: number;
+  heading: string;
   questions: Question[];
   startedAt: number;
   limitS: number;
@@ -41,7 +42,7 @@ interface RunCfg {
  * reloading never gives extra time or loses the work.
  */
 function runTest(cfg: RunCfg): () => void {
-  const { host, phase, questions, startedAt, limitS } = cfg;
+  const { host, phase, heading, questions, startedAt, limitS } = cfg;
   const deadline = startedAt + limitS * 1000;
   const preps: Prepared[] = [];
   const answers: Record<string, Answer> = { ...(cfg.resume?.answers ?? {}) };
@@ -112,7 +113,7 @@ function runTest(cfg: RunCfg): () => void {
     chipEls = questions.map((_, i) => h('button', { class: 'chip', type: 'button', 'aria-label': `Câu ${i + 1}`, onclick: () => go(i) }, String(i + 1)));
 
     host.append(
-      h('div', { class: 'test-head' }, h('h2', {}, `Kiểm tra ${PHASES[phase].title}`), timerEl),
+      h('div', { class: 'test-head' }, h('h2', {}, heading), timerEl),
       liveEl,
       h('div', { class: 'prog' }, h('span', {}, `Câu ${index + 1}/${questions.length}`), countEl),
       h('div', { class: 'chips', role: 'group', 'aria-label': 'Các câu trong bài kiểm tra' }, ...chipEls),
@@ -213,7 +214,7 @@ function plain(html: string): string {
 /** The result page: score, praise, weak spots, advice and a review of every question. */
 function resultView(data: PhaseData, graded: ReturnType<typeof gradeTest>, result: TestResult, run: PhaseRun, saveFailed: boolean, auto: boolean): HTMLElement {
   const prev = data.runs[0]?.score ?? null;
-  const fb = feedbackFor(result, data.topicName, prev);
+  const fb = feedbackFor(result, data.topicName, prev, data.unit);
   const root = h('main', { class: 'page result' });
 
   root.append(
@@ -237,7 +238,7 @@ function resultView(data: PhaseData, graded: ReturnType<typeof gradeTest>, resul
       h('span', { class: 'n' }, `${s.correct}/${s.total}`),
       weak ? h('span', { class: 'pill warn' }, '! Cần ôn') : null));
   }
-  root.append(h('section', { class: 'panel' }, h('h2', {}, 'Em làm thế nào ở từng chủ điểm?'), bars));
+  if (!data.topicCode) root.append(h('section', { class: 'panel' }, h('h2', {}, 'Em làm thế nào ở từng chủ điểm?'), bars));
 
   const advice = h('section', { class: 'panel' }, h('h2', {}, 'Lời khuyên cho em'), h('p', {}, fb.advice));
   if (result.weakLessons.length > 0) {
@@ -245,8 +246,8 @@ function resultView(data: PhaseData, graded: ReturnType<typeof gradeTest>, resul
       h('li', {}, h('a', { href: `#/lesson/${w.lesson_id}` }, `Bài ${w.ord} · ${w.title}`), ` (${data.topicName(w.topic_code)}) · sai ${w.missed}/${w.of} câu`))));
   }
   advice.append(h('div', { class: 'row' },
-    h('a', { class: 'btn', href: `#/phase/${data.phase}/test` }, 'Làm lại bài kiểm tra'),
-    h('a', { class: 'btn ghost', href: `#/phase/${data.phase}` }, 'Xem các lần làm trước'),
+    h('a', { class: 'btn', href: data.testHref }, 'Làm lại bài kiểm tra'),
+    h('a', { class: 'btn ghost', href: data.overviewHref }, 'Xem các lần làm trước'),
     h('a', { class: 'btn ghost', href: '#/' }, 'Về trang chủ')));
   root.append(advice);
 
@@ -276,18 +277,34 @@ export async function phaseTestView(phase: number, userId: string): Promise<HTML
   } catch {
     return stateView('Không tải được bài kiểm tra', 'Em kiểm tra mạng rồi tải lại trang nhé.', `#/phase/${phase}`);
   }
+  return testView(data, userId, testKey(userId, phase), `Kiểm tra ${data.title}`);
+}
+
+/** End-of-topic test: same engine and rules as the phase test, over the lessons of one topic. */
+export async function topicTestView(topicCode: string, userId: string): Promise<HTMLElement> {
+  leavePhaseTest();
+  let data: PhaseData;
+  try {
+    data = await loadTopicTest(topicCode);
+  } catch {
+    return stateView('Không tải được bài kiểm tra', 'Em kiểm tra mạng rồi tải lại trang nhé.', `#/topic/${topicCode}`);
+  }
+  return testView(data, userId, topicTestKey(userId, topicCode), `Kiểm tra cuối chủ điểm · ${data.title}`);
+}
+
+async function testView(data: PhaseData, userId: string, key: string, heading: string): Promise<HTMLElement> {
+  const { phase } = data;
   const store = browserStore();
-  const key = testKey(userId, phase);
   const saved = loadTest(store, key);
   if (!data.progress.unlocked && !saved) {
-    return stateView('Bài kiểm tra chưa mở', `Em cần luyện mỗi bài trong giai đoạn này ít nhất một lần (còn ${data.unpractised.length} bài).`, `#/phase/${phase}`);
+    return stateView('Bài kiểm tra chưa mở', `Em cần luyện mỗi bài trong ${data.unit} này ít nhất một lần (còn ${data.unpractised.length} bài).`, data.overviewHref);
   }
 
   let bank;
   try {
     bank = await loadBank(data.topics);
   } catch {
-    return stateView('Không tải được câu hỏi', 'Em kiểm tra mạng rồi tải lại trang nhé.', `#/phase/${phase}`);
+    return stateView('Không tải được câu hỏi', 'Em kiểm tra mạng rồi tải lại trang nhé.', data.overviewHref);
   }
   const byId = new Map([...bank.values()].flat().map((q) => [q.question_id, q] as const));
 
@@ -302,7 +319,7 @@ export async function phaseTestView(phase: number, userId: string): Promise<HTML
   }
   if (!questions) {
     questions = await buildTest(data, bank);
-    if (questions.length === 0) return stateView('Chưa có câu hỏi', 'Giai đoạn này chưa có đủ câu hỏi để kiểm tra.', `#/phase/${phase}`);
+    if (questions.length === 0) return stateView('Chưa có câu hỏi', `${data.unit === 'chủ điểm' ? 'Chủ điểm' : 'Giai đoạn'} này chưa có đủ câu hỏi để kiểm tra.`, data.overviewHref);
   }
   const startedAt = resume?.startedAt ?? Date.now();
   const limitS = resume?.limitS ?? Math.min(data.plan.timeLimitS, questions.length * 60);
@@ -318,10 +335,10 @@ export async function phaseTestView(phase: number, userId: string): Promise<HTML
     clearTest(store, key);
     const graded = gradeTest(finalQuestions, answers);
     const result = summarize(graded, data.lessons);
-    const fb = feedbackFor(result, data.topicName, data.runs[0]?.score ?? null);
+    const fb = feedbackFor(result, data.topicName, data.runs[0]?.score ?? null, data.unit);
     const finishedAt = new Date();
     const run: PhaseRun = {
-      phase, started_at: new Date(startedAt).toISOString(), finished_at: finishedAt.toISOString(), duration_s: elapsedS, time_limit_s: limitS,
+      phase, ...(data.topicCode ? { topic_code: data.topicCode } : {}), started_at: new Date(startedAt).toISOString(), finished_at: finishedAt.toISOString(), duration_s: elapsedS, time_limit_s: limitS,
       n_questions: result.total, n_correct: result.correct, score: result.score, pass_score: PASS_SCORE, passed: result.passed,
       topic_scores: result.topics, weak_lessons: result.weakLessons, comment: fb.short,
       answers: graded.map((g) => ({ question_id: g.question.question_id, correct: g.correct })),
@@ -338,7 +355,7 @@ export async function phaseTestView(phase: number, userId: string): Promise<HTML
   };
 
   stopTest = runTest({
-    host, phase, questions: finalQuestions, startedAt, limitS, resume,
+    host, phase, heading, questions: finalQuestions, startedAt, limitS, resume,
     persist: (s) => saveTest(store, key, s),
     onFinish: (a, e, auto) => void onFinish(a, e, auto),
   });

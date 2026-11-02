@@ -52,3 +52,11 @@ Quy tắc: **số câu = số bài**, kẹp trong khoảng 20–40; **1 phút m�
 - Mới kiểm tra bằng bản xem thử với dữ liệu giả lập, chưa thử với Supabase thật.
 - Phản hồi "vì sao sai" đã soạn cho cả 14 chủ điểm (7022 lý do, mỗi lý do qua một lượt soạn và một lượt kiểm chứng độc lập). Câu nào chưa có lý do (ví dụ dạng nối) thì phần xem lại không hiện dòng đó. Chưa có giáo viên duyệt.
 - Xem lại *từng câu* chỉ có ngay sau khi nộp; trong lịch sử chỉ lưu nhận xét và bài yếu (không lưu nội dung từng câu).
+
+## 8. Bài kiểm tra cuối chủ điểm (thêm 11/2026)
+Cùng cơ chế với bài kiểm tra giai đoạn, nhưng phạm vi là **một chủ điểm** (vd. "Các thì") và đặt ở cuối trang chủ điểm (`#/topic/<CODE>`, làm bài ở `#/topic/<CODE>/test`).
+- **Tên gọi 3 cấp:** Giai đoạn (4) → Chủ điểm (15, vd. "Các thì") → Bài (vd. "Hiện tại đơn"). Mỗi bài có phần Học (lý thuyết) rồi Luyện tập.
+- **Mở khóa:** mỗi bài trong chủ điểm luyện ≥ 1 lần (PO chọn, giống bài giai đoạn).
+- **Số câu:** số bài × 2, kẹp 20–40; 1 phút/câu; đạt 7/10 (`topicBlueprint` trong `app/src/phase-test.ts`). Chủ điểm 10 bài = 20 câu / 20 phút, hỏi đều 2 câu mỗi bài.
+- **Chọn câu, chấm, nhận xét, lịch sử:** như mục 3–6; lời khuyên nói "chủ điểm" thay vì "giai đoạn".
+- **Lưu lịch sử:** cùng bảng `phase_test_runs`, thêm cột `topic_code` (chạy `db/migrations/2026-11-05_topic_tests.sql` một lần). Lượt có `topic_code` là bài chủ điểm, không tính vào điểm/lần làm của bài giai đoạn. Chưa chạy migration thì làm bài vẫn được nhưng báo chưa lưu được lịch sử.

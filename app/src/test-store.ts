@@ -17,6 +17,7 @@ type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 
 export const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 export const testKey = (userId: string, phase: number): string => `gv10:phasetest:${userId}:${phase}`;
+export const topicTestKey = (userId: string, topicCode: string): string => `gv10:topictest:${userId}:${topicCode}`;
 
 function isValid(x: unknown): x is SavedTest {
   if (typeof x !== 'object' || x === null) return false;

@@ -203,3 +203,13 @@ describe('time helpers', () => {
     expect(remainingSeconds(10_000, 10_500)).toBe(0);
   });
 });
+
+describe('topicBlueprint', () => {
+  it('asks two questions per lesson, at least 20, at most 40, one minute each', async () => {
+    const { topicBlueprint } = await import('./phase-test');
+    expect(topicBlueprint(10)).toMatchObject({ questions: 20, timeLimitS: 1200, passScore: 7 });
+    expect(topicBlueprint(5).questions).toBe(20);
+    expect(topicBlueprint(15).questions).toBe(30);
+    expect(topicBlueprint(30).questions).toBe(40);
+  });
+});

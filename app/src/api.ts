@@ -124,6 +124,8 @@ export async function fetchTopicQuestions(topic: string): Promise<Question[]> {
 export interface PhaseRun {
   id?: string;
   phase: number;
+  /** Set for an end-of-topic test; absent for a phase test. Needs db/migrations/2026-11-05_topic_tests.sql. */
+  topic_code?: string | null;
   started_at: string;
   finished_at: string;
   duration_s: number;
@@ -140,12 +142,15 @@ export interface PhaseRun {
 }
 
 /** Earlier attempts, newest first. Throws when the table does not exist yet (db/migrations/2026-11-04_phase_tests.sql). */
-export async function fetchRuns(phase?: number): Promise<PhaseRun[]> {
+export async function fetchRuns(phase?: number, topicCode?: string): Promise<PhaseRun[]> {
   let q = db().from('phase_test_runs').select('*').order('finished_at', { ascending: false });
-  if (phase !== undefined) q = q.eq('phase', phase);
+  if (topicCode !== undefined) q = q.eq('topic_code', topicCode);
+  else if (phase !== undefined) q = q.eq('phase', phase);
   const { data, error } = await q;
   if (error) throw error;
-  return (data ?? []).map((r) => ({ ...(r as PhaseRun), score: Number((r as PhaseRun).score), pass_score: Number((r as PhaseRun).pass_score) }));
+  const runs = (data ?? []).map((r) => ({ ...(r as PhaseRun), score: Number((r as PhaseRun).score), pass_score: Number((r as PhaseRun).pass_score) }));
+  // phase tests only: filtered here rather than in SQL so they keep working before the topic_code column exists
+  return topicCode !== undefined ? runs : runs.filter((r) => !r.topic_code);
 }
 
 export async function saveRun(userId: string, run: PhaseRun): Promise<void> {

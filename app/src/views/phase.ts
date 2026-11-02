@@ -14,7 +14,7 @@ function resultOf(run: PhaseRun): TestResult {
 }
 
 function historyRow(data: PhaseData, run: PhaseRun, number: number, previous: PhaseRun | null): HTMLElement {
-  const fb = feedbackFor(resultOf(run), data.topicName, previous ? previous.score : null);
+  const fb = feedbackFor(resultOf(run), data.topicName, previous ? previous.score : null, data.unit);
   const detail = h('div', { class: 'hist-detail' },
     h('p', {}, h('b', {}, fb.headline), ' ', fb.praise),
     h('p', {}, fb.advice),
@@ -48,12 +48,18 @@ export async function phaseView(phase: number, userId: string): Promise<HTMLElem
     root.append(h('p', { class: 'error', role: 'alert' }, 'Không tải được thông tin bài kiểm tra. Em kiểm tra mạng rồi tải lại trang nhé.'));
     return root;
   }
-  const { plan } = data;
-  const inProgress = loadTest(browserStore(), testKey(userId, phase)) !== null;
-
   root.append(
     h('h1', {}, `Bài kiểm tra · ${PHASES[phase].title}`),
-    h('p', { class: 'hint' }, `Gồm các chủ điểm: ${data.topics.map((t) => t.name_vi).join(', ')}`),
+    h('p', { class: 'hint' }, `Gồm các chủ điểm: ${data.topics.map((t) => t.name_vi).join(', ')}`));
+  appendTestInfo(root, data, loadTest(browserStore(), testKey(userId, phase)) !== null);
+  return root;
+}
+
+/** Rules, start button (or what is still missing) and history of one test; shared by the phase page and the topic page. */
+export function appendTestInfo(root: HTMLElement, data: PhaseData, inProgress: boolean): void {
+  const { plan, unit } = data;
+  const scopeText = unit === 'chủ điểm' ? 'chủ điểm' : 'giai đoạn';
+  root.append(
     h('div', { class: 'facts' },
       h('div', {}, h('b', {}, String(plan.questions)), ' câu'),
       h('div', {}, h('b', {}, String(Math.round(plan.timeLimitS / 60))), ' phút'),
@@ -62,7 +68,9 @@ export async function phaseView(phase: number, userId: string): Promise<HTMLElem
     h('section', { class: 'panel' },
       h('h2', {}, 'Bài kiểm tra này như thế nào?'),
       h('ul', { class: 'rules' },
-        h('li', {}, `Câu hỏi được chọn ngẫu nhiên từ ngân hàng câu hỏi của các bài em đã học trong giai đoạn, xen kẽ các chủ điểm. Mỗi lần làm lại sẽ có câu mới.`),
+        h('li', {}, unit === 'chủ điểm'
+          ? 'Câu hỏi được chọn ngẫu nhiên từ ngân hàng câu hỏi của các bài trong chủ điểm này, hỏi đều từng bài. Mỗi lần làm lại sẽ có câu mới.'
+          : 'Câu hỏi được chọn ngẫu nhiên từ ngân hàng câu hỏi của các bài em đã học trong giai đoạn, xen kẽ các chủ điểm. Mỗi lần làm lại sẽ có câu mới.'),
         h('li', {}, 'Em được quay lại sửa đáp án trước khi nộp. Đáp án đúng chỉ hiện sau khi nộp bài, kèm lời giải từng câu.'),
         h('li', {}, `Thang điểm 10, đạt từ ${PASS_SCORE}. Dù đã đạt, em vẫn được báo phần nào còn yếu để ôn thêm.`),
         h('li', {}, 'Hết giờ thì bài tự được nộp. Đồng hồ chạy theo giờ thật, nên chuyển tab hay tải lại trang vẫn không mất bài đang làm.'))));
@@ -70,11 +78,11 @@ export async function phaseView(phase: number, userId: string): Promise<HTMLElem
   const start = h('section', { class: 'panel' });
   if (data.progress.unlocked || inProgress) {
     start.append(
-      h('p', {}, inProgress ? 'Em đang có một bài kiểm tra làm dở. Bấm để tiếp tục.' : 'Em đã luyện xong tất cả các bài trong giai đoạn này. Sẵn sàng chưa nào?'),
-      h('a', { class: 'btn', href: `#/phase/${phase}/test` }, inProgress ? 'Tiếp tục bài kiểm tra' : data.runs.length ? 'Làm lại bài kiểm tra' : 'Bắt đầu làm bài kiểm tra'));
+      h('p', {}, inProgress ? 'Em đang có một bài kiểm tra làm dở. Bấm để tiếp tục.' : `Em đã luyện xong tất cả các bài trong ${scopeText} này. Sẵn sàng chưa nào?`),
+      h('a', { class: 'btn', href: data.testHref }, inProgress ? 'Tiếp tục bài kiểm tra' : data.runs.length ? 'Làm lại bài kiểm tra' : 'Bắt đầu làm bài kiểm tra'));
   } else {
     start.append(
-      h('p', {}, `Bài kiểm tra sẽ mở khi em đã luyện mỗi bài trong giai đoạn này ít nhất một lần. Em mới luyện ${data.progress.practiced}/${data.progress.total} bài.`),
+      h('p', {}, `Bài kiểm tra sẽ mở khi em đã luyện mỗi bài trong ${scopeText} này ít nhất một lần. Em mới luyện ${data.progress.practiced}/${data.progress.total} bài.`),
       h('button', { class: 'btn', type: 'button', disabled: true, 'aria-disabled': 'true' }, 'Chưa mở'));
     if (data.unpractised.length) {
       start.append(h('p', { class: 'hint' }, 'Các bài em chưa luyện:'),
@@ -102,5 +110,4 @@ export async function phaseView(phase: number, userId: string): Promise<HTMLElem
     hist.append(list);
   }
   root.append(hist);
-  return root;
 }

@@ -1,7 +1,11 @@
 import { fetchLessonRefs, fetchProgress, fetchTopics } from '../api';
 import { h } from '../lib/dom';
+import { loadTopicTest } from '../phase-data';
+import { browserStore } from '../session-store';
+import { loadTest, topicTestKey } from '../test-store';
+import { appendTestInfo } from './phase';
 
-export async function topicView(code: string): Promise<HTMLElement> {
+export async function topicView(code: string, userId: string): Promise<HTMLElement> {
   const root = h('main', { class: 'page' }, h('a', { class: 'back', href: '#/' }, '‹ Về trang chủ'));
   try {
     const [topics, refs, progress] = await Promise.all([fetchTopics(), fetchLessonRefs(), fetchProgress()]);
@@ -26,6 +30,13 @@ export async function topicView(code: string): Promise<HTMLElement> {
       list.append(h('li', {}, h('a', { href: `#/lesson/${l.lesson_id}` }, h('span', { class: 'n' }, String(l.ord)), h('span', { class: 't' }, l.title), pill)));
     }
     root.append(list);
+    try {
+      const data = await loadTopicTest(code);
+      root.append(h('h2', { class: 'test-title' }, `Bài kiểm tra cuối chủ điểm "${topic.name_vi}"`));
+      appendTestInfo(root, data, loadTest(browserStore(), topicTestKey(userId, code)) !== null);
+    } catch {
+      root.append(h('p', { class: 'hint' }, 'Chưa tải được bài kiểm tra cuối chủ điểm. Em tải lại trang nhé.'));
+    }
   } catch {
     root.append(h('p', { class: 'error', role: 'alert' }, 'Không tải được danh sách bài. Em kiểm tra mạng rồi tải lại trang nhé.'));
   }

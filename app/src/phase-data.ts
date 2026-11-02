@@ -1,5 +1,6 @@
 import { fetchLessonsWithTags, fetchProgress, fetchRuns, fetchThreshold, fetchTopicQuestions, fetchTopics, type LessonRef, type PhaseRun, type Progress } from './api';
-import { blueprint, phaseProgress, pickTestQuestions, type Blueprint, type PhaseLesson, type PhaseProgress } from './phase-test';
+import { blueprint, phaseProgress, pickTestQuestions, topicBlueprint, type Blueprint, type PhaseLesson, type PhaseProgress, type TestUnit } from './phase-test';
+import { PHASES } from './phases';
 import type { Question, Topic } from './types';
 
 export interface PhaseSummary extends PhaseProgress {
@@ -31,6 +32,12 @@ export function phaseSummaries(topics: Topic[], refs: Pick<LessonRef, 'lesson_id
 
 export interface PhaseData {
   phase: number;
+  /** Set when this is the end-of-topic test of one topic rather than a phase test. */
+  topicCode?: string;
+  unit: TestUnit;
+  title: string; // "Giai đoạn 1 · Nền tảng" or the topic's Vietnamese name
+  overviewHref: string; // page with the rules and the history
+  testHref: string;
   topics: Topic[];
   lessons: PhaseLesson[];
   progress: PhaseProgress;
@@ -42,9 +49,20 @@ export interface PhaseData {
   topicName: (code: string) => string;
 }
 
-export async function loadPhase(phase: number): Promise<PhaseData> {
+export const loadPhase = (phase: number): Promise<PhaseData> => loadScope(phase);
+
+/** The end-of-topic test of one topic; throws when the topic does not exist. */
+export async function loadTopicTest(topicCode: string): Promise<PhaseData> {
+  const topic = (await fetchTopics()).find((t) => t.topic_code === topicCode);
+  if (!topic) throw new Error(`unknown topic ${topicCode}`);
+  return loadScope(topic.phase, topicCode);
+}
+
+async function loadScope(phase: number, topicCode?: string): Promise<PhaseData> {
   const [topics, allLessons, progressRows, threshold] = await Promise.all([fetchTopics(), fetchLessonsWithTags(), fetchProgress(), fetchThreshold()]);
-  const mineTopics = topics.filter((t) => t.phase === phase).sort((a, b) => a.sort_order - b.sort_order);
+  const mineTopics = topics
+    .filter((t) => (topicCode ? t.topic_code === topicCode : t.phase === phase))
+    .sort((a, b) => a.sort_order - b.sort_order);
   const codes = new Set(mineTopics.map((t) => t.topic_code));
   const lessons: PhaseLesson[] = allLessons
     .filter((l) => codes.has(l.topic_code))
@@ -52,7 +70,7 @@ export async function loadPhase(phase: number): Promise<PhaseData> {
   let runs: PhaseRun[] = [];
   let runsError = false;
   try {
-    runs = await fetchRuns(phase);
+    runs = await fetchRuns(phase, topicCode);
   } catch {
     runsError = true;
   }
@@ -61,12 +79,17 @@ export async function loadPhase(phase: number): Promise<PhaseData> {
   const names = new Map(topics.map((t) => [t.topic_code, t.name_vi]));
   return {
     phase,
+    topicCode,
+    unit: topicCode ? 'chủ điểm' : 'giai đoạn',
+    title: topicCode ? (mineTopics[0]?.name_vi ?? topicCode) : PHASES[phase]?.title ?? `Giai đoạn ${phase}`,
+    overviewHref: topicCode ? `#/topic/${topicCode}` : `#/phase/${phase}`,
+    testHref: topicCode ? `#/topic/${topicCode}/test` : `#/phase/${phase}/test`,
     topics: mineTopics,
     lessons,
     progress: phaseProgress(lessons.map((l) => l.lesson_id), progressRows),
     unpractised: lessons.filter((l) => !practised.has(l.lesson_id)),
     weakLessonIds: new Set(lessons.filter((l) => (byLesson.get(l.lesson_id)?.best_score ?? 0) < threshold * 100).map((l) => l.lesson_id)),
-    plan: blueprint(lessons.length),
+    plan: topicCode ? topicBlueprint(lessons.length) : blueprint(lessons.length),
     runs,
     runsError,
     topicName: (code) => names.get(code) ?? code,

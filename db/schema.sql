@@ -172,10 +172,12 @@ create table study_days (
   primary key (user_id, day)
 );
 
--- ============ 3b. Bai kiem tra giai doan (xem db/migrations/2026-11-04_phase_tests.sql) ============
+-- ============ 3b. Bai kiem tra giai doan va chu diem (xem db/migrations/2026-11-04_phase_tests.sql, 2026-11-05_topic_tests.sql) ============
+create table if not exists phase_test_runs (
   id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null references profiles on delete cascade,
   phase         int  not null check (phase between 1 and 4),
+  topic_code    text,                             -- co gia tri = bai kiem tra cuoi chu diem; null = bai kiem tra giai doan
   started_at    timestamptz not null,
   finished_at   timestamptz not null default now(),
   duration_s    int  not null,

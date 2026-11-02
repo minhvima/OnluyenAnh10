@@ -22,7 +22,7 @@ import { homeView } from './views/home';
 import { leaveLesson, lessonView } from './views/lesson';
 import { deniedView, loginView } from './views/login';
 import { phaseView } from './views/phase';
-import { leavePhaseTest, phaseTestView } from './views/phasetest';
+import { leavePhaseTest, phaseTestView, topicTestView } from './views/phasetest';
 import { topicView } from './views/topic';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -73,7 +73,8 @@ async function render(): Promise<void> {
   const route = window.location.hash.replace(/^#\/?/, '');
   let content: HTMLElement;
   if (route === 'admin' && role === 'admin') content = adminView();
-  else if (route.startsWith('topic/')) content = await topicView(decodeURIComponent(route.slice(6)));
+  else if (/^topic\/[^/]+\/test$/.test(route)) content = await topicTestView(decodeURIComponent(route.split('/')[1]), session.user.id);
+  else if (route.startsWith('topic/')) content = await topicView(decodeURIComponent(route.slice(6)), session.user.id);
   else if (/^phase\/\d+\/test$/.test(route)) content = await phaseTestView(Number(route.split('/')[1]), session.user.id);
   else if (/^phase\/\d+$/.test(route)) content = await phaseView(Number(route.split('/')[1]), session.user.id);
   else if (route.startsWith('lesson/')) content = await lessonView(decodeURIComponent(route.slice(7)), session.user.id);
