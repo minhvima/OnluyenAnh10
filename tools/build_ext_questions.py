@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build extra questions for one topic from tools/content_src/<dir>/lNN.py (each defines TAG and ITEMS).
 
-Usage: python tools/build_ext_questions.py TENSES tenses_ext 201 data_bank/review/tenses_ext.json
+Usage: python tools/build_ext_questions.py TENSES tenses_ext 201 data_bank/review/tenses_ext.json [tag_prefix]
 Output questions have status "draft": run tools/validate_questions.py and the QA pass before merging into data_bank/json.
 """
 import importlib.util
@@ -46,6 +46,7 @@ def build_one(it, topic, qid, tags, pos):
 
 def main():
     topic, folder, start, out = sys.argv[1], sys.argv[2], int(sys.argv[3]), Path(sys.argv[4])
+    prefix = sys.argv[5] if len(sys.argv) > 5 else 't'  # lesson tag prefix: t1 (TENSES), q1 (SENTENCE_STRUCTURES), m1 (MODALS_QUANTIFIERS)
     qid, res, mcseq = start, [], 0
     for f in sorted((ROOT / 'tools' / 'content_src' / folder).glob('l*.py')):
         spec = importlib.util.spec_from_file_location(f.stem, f)
@@ -56,7 +57,7 @@ def main():
             pos = mcseq % 4  # rotate the correct letter over the choice-type questions so A-D stay balanced
             if it['kind'] in ('multiple_choice', 'sentence_transformation', 'sentence_combination'):
                 mcseq += 1
-            res.append(build_one(it, topic, f'Q_{topic}_{qid:03d}', [m.TAG, f't{no}'], pos))
+            res.append(build_one(it, topic, f'Q_{topic}_{qid:03d}', [m.TAG, f'{prefix}{no}'], pos))
             qid += 1
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding='utf-8')
