@@ -91,6 +91,8 @@ function mockRpc(name: string, a: Record<string, string | null>): unknown {
     return [{ id: 't1', user_id: 'u-minh', phase: 1, topic_code: null, finished_at: new Date(Date.now() - 2 * 86_400_000).toISOString(), duration_s: 1260, n_questions: 20, n_correct: 15, score: 7.5, pass_score: 7, passed: true, comment: '' },
       { id: 't2', user_id: 'u-minh', phase: 1, topic_code: 'TENSES', finished_at: new Date(Date.now() - 9 * 86_400_000).toISOString(), duration_s: 300, n_questions: 10, n_correct: 6, score: 6, pass_score: 7, passed: false, comment: '' }];
   }
+  if (name === 'admin_abandoned_lessons') return [{ user_id: 'u-lan', lesson_id: 'L_TENSES_03', day: day(1), minutes: 4.5 }, { user_id: 'u-minh', lesson_id: 'L_PASSIVE_VOICE_02', day: day(3), minutes: 1.2 }];
+  if (name === 'admin_purge_activity_log') return 12;
   return 'admin';
 }
 

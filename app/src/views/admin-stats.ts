@@ -10,6 +10,7 @@ const RANGES = [[7, '7 ngày'], [30, '30 ngày'], [90, '90 ngày']] as const;
 
 interface ViewTime { view_kind: string; ref_id: string | null; topic_code: string | null; minutes: number; visits: number }
 interface HardQ { question_id: string; topic_code: string; lesson_id: string | null; attempts: number; wrong: number; wrong_rate: number }
+interface Abandoned { user_id: string; lesson_id: string; day: string; minutes: number }
 interface TestRow { id: string; user_id: string; phase: number; topic_code: string | null; finished_at: string; duration_s: number; n_questions: number; n_correct: number; score: number; pass_score: number; passed: boolean; comment: string }
 
 const KIND: Record<string, string> = { home: 'Trang chủ', topic: 'Chủ điểm', lesson: 'Bài học', topic_test: 'Kiểm tra chủ điểm', phase: 'Giai đoạn', phase_test: 'Kiểm tra giai đoạn' };
@@ -141,6 +142,7 @@ export async function statsTab(): Promise<HTMLElement> {
     clear(detail);
     detail.append(h('p', { class: 'note' }, 'Đang tải…'));
     let daily: DailyRow[], topics: TopicStat[], views: ViewTime[], hard: HardQ[], tests: TestRow[];
+    let abandoned: Abandoned[] | null = null; // null = migration 2026-11-08 not run yet; the section is simply hidden
     try {
       [daily, topics, views, hard, tests] = await Promise.all([
         rpc<DailyRow>('admin_daily_activity', { p_from: from, p_to: to, p_user: user }),
@@ -154,6 +156,7 @@ export async function statsTab(): Promise<HTMLElement> {
       detail.append(h('p', { class: 'error', role: 'alert' }, `Không tải được số liệu (${e instanceof Error ? e.message : 'lỗi mạng'}). Kiểm tra mạng rồi thử lại.`));
       return;
     }
+    abandoned = await rpc<Abandoned>('admin_abandoned_lessons', { p_from: from, p_to: to, p_user: user }).catch(() => null);
     topics = topics.map((t) => ({ ...t, answers: num(t.answers), correct: num(t.correct), accuracy: t.accuracy === null ? null : num(t.accuracy), lessons_mastered: num(t.lessons_mastered), lessons_total: num(t.lessons_total) }));
     const buckets = bucketDaily(daily.map((r) => ({ ...r, day: String(r.day).slice(0, 10) })), from, to, currentGran);
     const total = buckets.reduce((a, b) => ({ minutes: a.minutes + b.minutes, answers: a.answers + b.answers, correct: a.correct + b.correct, tests: a.tests + b.tests }), { minutes: 0, answers: 0, correct: 0, tests: 0 });
@@ -196,6 +199,25 @@ export async function statsTab(): Promise<HTMLElement> {
       ? table(['Câu hỏi', 'Bài', 'Lượt làm', 'Sai', '% sai'], hard.map((q) => [q.question_id, q.lesson_id, num(q.attempts), num(q.wrong), `${num(q.wrong_rate)}%`]), 'Câu sai nhiều')
       : h('p', { class: 'note' }, 'Chưa có câu nào được làm từ 5 lần trở lên.');
 
+    const nameOf = (id: string): string => { const s = students.find((x) => x.user_id === id); return s ? s.display_name || s.email : id.slice(0, 8); };
+    const abandonedBox = abandoned === null ? '' : abandoned.length
+      ? table(['Ngày', 'Học sinh', 'Bài', 'Phút xem'], abandoned.slice(0, 15).map((r) => [String(r.day).slice(8, 10) + '/' + String(r.day).slice(5, 7), nameOf(r.user_id), r.lesson_id, num(r.minutes)]), 'Bài mở nhưng chưa làm bài tập')
+      : h('p', { class: 'note' }, 'Chưa có bài nào mở lâu mà chưa làm bài tập.');
+
+    const purgeMsg = h('p', { class: 'note', role: 'status' });
+    const purgeBtn = h('button', {
+      class: 'btn btn-small', type: 'button',
+      onclick: async () => {
+        if (!window.confirm('Xóa nhật ký hoạt động cũ hơn 3 tháng? Không thể hoàn tác. Kết quả làm bài và bài kiểm tra không bị xóa.')) return;
+        try {
+          const n = await rpc<number>('admin_purge_activity_log');
+          purgeMsg.textContent = `Đã xóa ${String(n)} dòng nhật ký cũ.`;
+        } catch (e) {
+          purgeMsg.textContent = `Không dọn được (${e instanceof Error ? e.message : 'lỗi'}). Đã chạy file 2026-11-08_activity_retention.sql chưa?`;
+        }
+      },
+    }, 'Dọn nhật ký cũ hơn 3 tháng');
+
     const csvBtn = (label: string, file: string, build: () => string): HTMLElement =>
       h('button', { class: 'btn btn-small', type: 'button', onclick: () => download(file, build()) }, label);
     const stamp = `${from}_${to}`;
@@ -211,7 +233,13 @@ export async function statsTab(): Promise<HTMLElement> {
       h('h2', {}, 'Bài kiểm tra'), testTable,
       tests.length ? csvBtn('Tải CSV (bài kiểm tra)', `bai-kiem-tra-${stamp}.csv`, () => toCsv(['Thời điểm', 'Giai đoạn', 'Chủ điểm', 'Điểm /10', 'Đúng', 'Tổng câu', 'Giây', 'Đạt'], tests.map((t) => [t.finished_at, t.phase, t.topic_code, num(t.score), t.n_correct, t.n_questions, t.duration_s, t.passed ? 'có' : 'không']))) : '',
       h('h2', {}, 'Thời gian theo bài / chủ điểm'), viewTable,
-      h('h2', {}, 'Câu sai nhiều'), h('p', { class: 'note' }, 'Câu nhiều em cùng sai có thể là câu khó hoặc câu có vấn đề. Xem lại ở tab Câu hỏi.'), hardTable);
+      h('h2', {}, 'Câu sai nhiều'), h('p', { class: 'note' }, 'Câu nhiều em cùng sai có thể là câu khó hoặc câu có vấn đề. Xem lại ở tab Câu hỏi.'), hardTable,
+      abandoned === null ? '' : h('h2', {}, 'Mở bài nhưng chưa làm bài tập'),
+      abandoned === null ? '' : h('p', { class: 'note' }, 'Bài xem từ 1 phút trở lên mà cùng ngày không có câu trả lời nào: em có thể mới đọc lý thuyết hoặc bỏ dở.'),
+      abandonedBox,
+      h('h2', {}, 'Dữ liệu nhật ký'),
+      h('p', { class: 'note' }, 'Nhật ký hoạt động (đăng nhập, thời gian xem) tự xóa sau 3 tháng. Kết quả làm bài và bài kiểm tra được giữ lại.'),
+      purgeBtn, purgeMsg);
   }
 
   who.addEventListener('change', () => void reload());

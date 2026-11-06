@@ -43,6 +43,15 @@
 - Team quyết (lý do trong `docs/phase-test-spec.md`): số câu = số bài trong khoảng 20–40, 1 phút/câu, đạt 7/10, ưu tiên bài yếu và câu chưa gặp, không hiện đúng/sai đến khi nộp, hết giờ tự nộp, lưu tiến trình để không mất bài.
 - Lịch sử trong bảng mới `phase_test_runs` (migration `db/migrations/2026-11-04_phase_tests.sql`).
 
+## D10 — Theo dõi học tập cho phụ huynh: nhật ký hoạt động + tab Thống kê (2026-11-06, PO yêu cầu)
+- PO chọn: dùng cho phụ huynh theo dõi vài em; ghi đầy đủ thời gian học; báo cáo gồm biểu đồ ngày/tuần/tháng, cảnh báo bỏ học/điểm yếu, bảng + xuất CSV.
+- Dữ liệu: bảng `activity_log` (`db/migrations/2026-11-06_activity_log.sql`) chỉ có `login` và `view` (màn hình + số ms tương tác). Số câu, % đúng, bài đạt, bài kiểm tra lấy từ `attempts`, `lesson_progress`, `phase_test_runs` có sẵn nên không ghi trùng. Không lưu IP, thiết bị, không bên thứ ba.
+- Thời gian học là **thời gian tương tác thực**, không phải thời gian mở tab: mỗi lần thao tác cộng khoảng cách từ lần trước, tối đa 60 giây (`app/src/activity.ts`). Là ước lượng từ trình duyệt; đóng tab đột ngột có thể mất tối đa ~2 phút chưa gửi.
+- Thống kê dùng hàm SQL `security definer` (`2026-11-07_admin_stats.sql`), mỗi hàm tự gọi `assert_admin()`; **không dùng view** vì view chạy bằng quyền chủ bảng và bỏ qua RLS. Đã kiểm chứng trên Supabase thật: tài khoản học sinh gọi hàm nhận 403 `NOT_ADMIN`. Ngày tính theo giờ Việt Nam; gom tuần/tháng ở client.
+- "Bỏ dở bài" không có sự kiện riêng mà suy ra: bài xem ≥ 1 phút nhưng cùng ngày không có câu trả lời nào (`admin_abandoned_lessons`, `2026-11-08_activity_retention.sql`).
+- **Lưu giữ:** `activity_log` chỉ giữ 3 tháng (PO chọn), tự xóa hằng ngày bằng pg_cron nếu bật được, nếu không thì dùng nút "Dọn nhật ký" trong tab Thống kê. Kết quả làm bài và bài kiểm tra không bị xóa. Lý do: tối thiểu hóa dữ liệu của học sinh vị thành niên.
+- Bài học khi triển khai: `sum()` của cột bigint trả về numeric nên hàm khai báo `bigint` phải ép kiểu, SQL chưa chạy thử trên Postgres thật thì dễ sót lỗi kiểu này.
+
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
 - Thành công: em tự giác học đều; điểm ngữ pháp tăng; PO theo dõi được tiến độ; em hiểu bản chất.
