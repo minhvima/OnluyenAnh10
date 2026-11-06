@@ -17,7 +17,7 @@ const KIND: Record<string, string> = { home: 'Trang chủ', topic: 'Chủ điể
 async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T[]> {
   if (!supabase) throw new Error('no supabase');
   const { data, error } = await supabase.rpc(name, args);
-  if (error) throw error;
+  if (error) throw new Error(`${name}: ${error.message}`);
   return (data ?? []) as T[];
 }
 
@@ -148,9 +148,9 @@ export async function statsTab(): Promise<HTMLElement> {
         rpc<HardQ>('admin_hard_questions', { p_min_attempts: 5, p_limit: 15, p_user: user }),
         rpc<TestRow>('admin_test_history', { p_from: from, p_to: to, p_user: user }),
       ]);
-    } catch {
+    } catch (e) {
       clear(detail);
-      detail.append(h('p', { class: 'error', role: 'alert' }, 'Không tải được số liệu. Kiểm tra mạng rồi thử lại.'));
+      detail.append(h('p', { class: 'error', role: 'alert' }, `Không tải được số liệu (${e instanceof Error ? e.message : 'lỗi mạng'}). Kiểm tra mạng rồi thử lại.`));
       return;
     }
     topics = topics.map((t) => ({ ...t, answers: num(t.answers), correct: num(t.correct), accuracy: t.accuracy === null ? null : num(t.accuracy), lessons_mastered: num(t.lessons_mastered), lessons_total: num(t.lessons_total) }));

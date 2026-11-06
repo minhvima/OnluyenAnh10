@@ -84,8 +84,8 @@ begin
     select (finished_at at time zone 'Asia/Ho_Chi_Minh')::date, x.user_id, 0, 0, 0, null, 1
     from phase_test_runs x where p_user is null or x.user_id = p_user
   )
-  select ev.d, ev.u, round(sum(ev.mins), 1), sum(ev.ans), sum(ev.ok),
-         count(distinct ev.lesson), sum(ev.tst)
+  select ev.d, ev.u, round(sum(ev.mins), 1), sum(ev.ans)::bigint, sum(ev.ok)::bigint,
+         count(distinct ev.lesson), sum(ev.tst)::bigint
   from ev
   where ev.d between p_from and p_to
   group by ev.d, ev.u
