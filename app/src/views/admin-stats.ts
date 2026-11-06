@@ -44,7 +44,7 @@ function download(name: string, csv: string): void {
 function barChart(buckets: Bucket[], metric: Metric): SVGElement {
   const value = (b: Bucket): number | null => (metric === 'accuracy' ? percent(b.correct, b.answers) : metric === 'minutes' ? Math.round(b.minutes) : metric === 'answers' ? b.answers : b.tests);
   const vals = buckets.map(value);
-  const max = Math.max(1, ...vals.map((v) => v ?? 0), metric === 'accuracy' ? 100 : 0);
+  const max = Math.max(2, ...vals.map((v) => v ?? 0), metric === 'accuracy' ? 100 : 0);
   const W = 960, H = 260, padL = 40, padB = 34, padT = 18;
   const bw = (W - padL) / buckets.length;
   const ns = 'http://www.w3.org/2000/svg';
@@ -111,6 +111,7 @@ export async function statsTab(): Promise<HTMLElement> {
   // ---- filters ----
   let days = 30;
   let metric: Metric = 'minutes';
+  let metricTouched = false;
   currentGran = 'day';
   const who = h('select', { 'aria-label': 'Học sinh' }, h('option', { value: '' }, 'Tất cả học sinh'),
     ...students.map((s) => h('option', { value: s.user_id }, s.display_name || s.email))) as HTMLSelectElement;
@@ -173,6 +174,8 @@ export async function statsTab(): Promise<HTMLElement> {
       kpi('% đúng', total.answers ? `${percent(total.correct, total.answers)}%` : '–'),
       kpi('Bài kiểm tra', String(total.tests)));
 
+    // Time logging only started recently: until the student has logged time, show answers so the chart is not empty.
+    if (!metricTouched && total.minutes === 0 && total.answers > 0) { metric = 'answers'; metricSel.value = 'answers'; }
     const chartBox = h('div', {}, barChart(buckets, metric));
     const rows = buckets.map((b) => [b.label, Math.round(b.minutes), b.answers, percent(b.correct, b.answers), b.lessons, b.tests]);
     const timeTable = table(['Mốc', 'Phút học', 'Số câu', '% đúng', 'Bài đã luyện', 'Bài kiểm tra'], rows.map((r) => r.map((c, i) => (i === 3 && c !== null ? `${c}%` : c))), `Thống kê theo ${GRAN_LOWER[currentGran]}`);
@@ -215,7 +218,7 @@ export async function statsTab(): Promise<HTMLElement> {
   rangeSel.addEventListener('change', () => { days = Number(rangeSel.value); void reload(); });
   // the chart selectors live inside `detail`, which is rebuilt, so they are kept here and re-attached each time
   granSel.addEventListener('change', () => { currentGran = granSel.value as Granularity; void reload(); });
-  metricSel.addEventListener('change', () => { metric = metricSel.value as Metric; void reload(); });
+  metricSel.addEventListener('change', () => { metric = metricSel.value as Metric; metricTouched = true; void reload(); });
   granSel.value = currentGran;
 
   root.append(
