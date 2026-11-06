@@ -14,8 +14,10 @@ import './styles/tokens.css';
 import './styles/app.css';
 import './styles/learn.css';
 import './styles/phase.css';
+import './styles/admin.css';
 import { clear, h } from './lib/dom';
 import { fetchAccess, readAuthErrorFromUrl, supabase, type Role } from './lib/supabase';
+import { trackRoute } from './activity-log';
 import { shouldRerender } from './auth-events';
 import { adminView } from './views/admin';
 import { homeView } from './views/home';
@@ -82,6 +84,7 @@ async function render(): Promise<void> {
   if (stale()) return;
   root.append(shell(email, role, content));
   window.scrollTo(0, 0);
+  trackRoute(session.user.id, route);
 }
 
 if (supabase) {

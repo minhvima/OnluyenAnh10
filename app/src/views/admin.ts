@@ -1,7 +1,9 @@
 import { clear, h } from '../lib/dom';
 import { supabase } from '../lib/supabase';
 
-type Tab = 'allowlist' | 'questions' | 'lessons';
+import { statsTab } from './admin-stats';
+
+type Tab = 'stats' | 'allowlist' | 'questions' | 'lessons';
 const PAGE = 25;
 
 interface Allowed { email: string; role: string; active: boolean; note: string | null }
@@ -20,14 +22,14 @@ export function adminView(): HTMLElement {
 
   const show = (tab: Tab): void => {
     clear(tabs);
-    for (const [id, label] of [['allowlist', 'Danh sách cho phép'], ['questions', 'Câu hỏi'], ['lessons', 'Bài học']] as const) {
-      tabs.append(h('button', { class: id === tab ? 'tab active' : 'tab', onclick: () => show(id) }, label));
+    for (const [id, label] of [['stats', 'Thống kê'], ['allowlist', 'Danh sách cho phép'], ['questions', 'Câu hỏi'], ['lessons', 'Bài học']] as const) {
+      tabs.append(h('button', { class: id === tab ? 'tab active' : 'tab', 'data-tab': id, onclick: () => show(id) }, label));
     }
     clear(body);
-    const view = tab === 'allowlist' ? allowlistTab() : tab === 'questions' ? questionsTab() : lessonsTab();
-    void view.then((el) => body.append(el));
+    const view = tab === 'stats' ? statsTab() : tab === 'allowlist' ? allowlistTab() : tab === 'questions' ? questionsTab() : lessonsTab();
+    void view.then((el) => { if (tabs.querySelector('.tab.active')?.getAttribute('data-tab') === tab) body.append(el); });
   };
-  show('allowlist');
+  show('stats');
   return root;
 }
 

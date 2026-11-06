@@ -30,7 +30,7 @@ const topics: Row[] = T.map(([topic_code, name_vi, name_en, sort_order, phase, p
 
 const progress: Row[] = [];
 const tables: Record<string, Row[]> = {
-  topics, lessons, questions, lesson_progress: progress, attempts: [], phase_test_runs: [],
+  topics, lessons, questions, lesson_progress: progress, attempts: [], phase_test_runs: [], activity_log: [],
   app_settings: [{ key: 'mastery_threshold', value: 0.8 }], profiles: [{ display_name: 'Minh' }],
 };
 
@@ -57,11 +57,48 @@ class Query implements PromiseLike<{ data: unknown; error: null; count: number }
   }
 }
 
+/** Fake admin statistics for visual QA only (two students; "Lan" stopped studying 4 days ago). */
+function mockRpc(name: string, a: Record<string, string | null>): unknown {
+  const day = (offset: number): string => new Date(Date.now() + 7 * 3600_000 - offset * 86_400_000).toISOString().slice(0, 10);
+  if (name === 'admin_students_summary') {
+    return [
+      { user_id: 'u-minh', email: 'minh@example.com', display_name: 'Minh', last_active: new Date().toISOString(), idle_days: 0, minutes_7d: 142.5, active_days_7d: 5, answers_total: 410, correct_total: 318, lessons_mastered: 9, lessons_started: 14, tests_taken: 3 },
+      { user_id: 'u-lan', email: 'lan@example.com', display_name: null, last_active: new Date(Date.now() - 4 * 86_400_000).toISOString(), idle_days: 4, minutes_7d: 20, active_days_7d: 1, answers_total: 60, correct_total: 33, lessons_mastered: 1, lessons_started: 4, tests_taken: 0 },
+    ];
+  }
+  if (name === 'admin_daily_activity') {
+    const out: unknown[] = [];
+    for (let i = 0; i < 90; i++) {
+      for (const u of ['u-minh', 'u-lan']) {
+        if (a.p_user && a.p_user !== u) continue;
+        if ((i * (u === 'u-minh' ? 3 : 7) + i) % (u === 'u-minh' ? 4 : 5) === 0) continue; // some rest days
+        if (u === 'u-lan' && i < 4) continue;
+        const n = 10 + ((i * 7) % 25);
+        out.push({ day: day(i), user_id: u, minutes: 8 + ((i * 5) % 30), answers: n, correct: Math.round(n * (u === 'u-minh' ? 0.8 : 0.55)), lessons_practiced: 1 + (i % 2), tests: i % 11 === 0 ? 1 : 0 });
+      }
+    }
+    return out;
+  }
+  if (name === 'admin_topic_stats') {
+    return [['TENSES', 'Các thì', 120, 105, 5, 6], ['PASSIVE_VOICE', 'Câu bị động', 80, 52, 2, 5], ['CONDITIONALS', 'Câu điều kiện', 14, 6, 0, 4], ['RELATIVE_CLAUSES', 'Mệnh đề quan hệ', 0, 0, 0, 4]]
+      .map(([c, n, an, ok, m, t]) => ({ topic_code: c, name_vi: n, answers: an, correct: ok, accuracy: an ? Math.round(((ok as number) / (an as number)) * 1000) / 10 : null, lessons_mastered: m, lessons_total: t }));
+  }
+  if (name === 'admin_view_time') {
+    return [{ view_kind: 'lesson', ref_id: 'L_TENSES_01', topic_code: 'TENSES', minutes: 38.5, visits: 6 }, { view_kind: 'topic_test', ref_id: 'PASSIVE_VOICE', topic_code: 'PASSIVE_VOICE', minutes: 12, visits: 2 }, { view_kind: 'home', ref_id: null, topic_code: null, minutes: 5, visits: 20 }];
+  }
+  if (name === 'admin_hard_questions') return [{ question_id: 'Q_PASSIVE_VOICE_014', topic_code: 'PASSIVE_VOICE', lesson_id: 'L_PASSIVE_VOICE_02', attempts: 9, wrong: 7, wrong_rate: 77.8 }];
+  if (name === 'admin_test_history') {
+    return [{ id: 't1', user_id: 'u-minh', phase: 1, topic_code: null, finished_at: new Date(Date.now() - 2 * 86_400_000).toISOString(), duration_s: 1260, n_questions: 20, n_correct: 15, score: 7.5, pass_score: 7, passed: true, comment: '' },
+      { id: 't2', user_id: 'u-minh', phase: 1, topic_code: 'TENSES', finished_at: new Date(Date.now() - 9 * 86_400_000).toISOString(), duration_s: 300, n_questions: 10, n_correct: 6, score: 6, pass_score: 7, passed: false, comment: '' }];
+  }
+  return 'admin';
+}
+
 export const configured = true;
 export type Role = 'student' | 'admin';
 export const supabase = {
   from: (t: string) => new Query(t),
-  rpc: async () => ({ data: 'admin', error: null }),
+  rpc: async (name: string, args: Record<string, string | null> = {}) => ({ data: mockRpc(name, args), error: null }),
   auth: {
     getSession: async () => ({ data: { session: { user: { id: 'preview-user', email: 'minh@example.com' } } } }),
     // Like the real client, which re-emits SIGNED_IN whenever the tab becomes visible again.

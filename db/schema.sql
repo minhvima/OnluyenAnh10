@@ -200,6 +200,27 @@ drop policy if exists ptr_admin on phase_test_runs;
 create policy ptr_own   on phase_test_runs for all    using (user_id = auth.uid()) with check (user_id = auth.uid() and is_allowed());
 create policy ptr_admin on phase_test_runs for select using (is_admin());
 
+-- ============ 3c. Nhat ky hoat dong (xem db/migrations/2026-11-06_activity_log.sql) ============
+create table if not exists activity_log (
+  id          bigint generated always as identity primary key,
+  user_id     uuid not null references profiles on delete cascade,
+  event       text not null check (event in ('login','view')),
+  view_kind   text check (view_kind in ('home','topic','lesson','topic_test','phase','phase_test')),
+  ref_id      text,
+  topic_code  text,
+  duration_ms int check (duration_ms is null or duration_ms between 0 and 3600000),
+  created_at  timestamptz not null default now()
+);
+create index if not exists activity_log_user_time_idx on activity_log (user_id, created_at desc);
+create index if not exists activity_log_event_idx on activity_log (event, created_at desc);
+alter table activity_log enable row level security;
+drop policy if exists al_own_insert on activity_log;
+drop policy if exists al_own_select on activity_log;
+drop policy if exists al_admin on activity_log;
+create policy al_own_insert on activity_log for insert with check (user_id = auth.uid() and is_allowed());
+create policy al_own_select on activity_log for select using (user_id = auth.uid());
+create policy al_admin      on activity_log for select using (is_admin());
+
 -- ============ 4. Cau hinh ============
 create table app_settings (
   key   text primary key,
