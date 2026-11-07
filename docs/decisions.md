@@ -66,7 +66,7 @@
 - PO nhận xét lý thuyết chủ điểm 13–14 sơ sài, khái niệm khó hiểu, công thức không rõ, thiếu ví dụ theo cách dùng. Rà soát: chỉ TENSES có bản v2 (`formula_v2`, `rules`, `examples`); chủ điểm 2–14 đều là bản rút gọn.
 - PO chọn: làm chủ điểm 13 → 14 trước, duyệt khuôn rồi mới làm 2–12. Thêm trường `concept` (lời giải thích thường + ví dụ đối chiếu) hiện đầu bài, trước truyện mở đầu.
 - Nguồn nội dung ở `tools/content_src/<x>_ext.py` → `data_bank/lessons_ext/ext_<x>.json`; `merge_lesson_ext.py` gộp thêm `concept` và `overrides` (thay observe/common_mistakes/... bản cũ). Không đổi schema DB (`lessons.content` là jsonb); cập nhật bằng `import_to_supabase.py --apply --update-lesson-content --topic <CODE>`.
-- Chủ điểm 13 xong và PO đã duyệt (2026-11-07).
+- Chủ điểm 13 và 14 xong, PO đã duyệt (2026-11-07). Bài 14 thêm: can ↔ be able to, ought to / If I were you, have to theo thì, thang chắc chắn will → may/might → won't, used to vs be used to + V-ing, đơn vị đếm, từ ghép some/any/no.
 
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
