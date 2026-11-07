@@ -52,6 +52,15 @@
 - **Lưu giữ:** `activity_log` chỉ giữ 3 tháng (PO chọn), tự xóa hằng ngày bằng pg_cron nếu bật được, nếu không thì dùng nút "Dọn nhật ký" trong tab Thống kê. Kết quả làm bài và bài kiểm tra không bị xóa. Lý do: tối thiểu hóa dữ liệu của học sinh vị thành niên.
 - Bài học khi triển khai: `sum()` của cột bigint trả về numeric nên hàm khai báo `bigint` phải ép kiểu, SQL chưa chạy thử trên Postgres thật thì dễ sót lỗi kiểu này.
 
+## D11 — Sổ lỗi sai với ôn lặp cách quãng 1/3/7 ngày (2026-11-07, PO yêu cầu)
+- PO chọn: ghi câu sai từ **cả ba nguồn** (bài luyện, bài kiểm tra cuối chủ điểm, bài kiểm tra giai đoạn); mỗi lần ôn **tối đa 20 câu**; chỉ nhắc **trong app** (trang chủ), có giám sát cho phụ huynh; câu đã nắm **giữ lại nhưng ẩn** khỏi danh sách cần ôn.
+- Quy tắc: sai → giai đoạn 0, hẹn sau 1 ngày; ôn đúng → giai đoạn 1 (3 ngày) → 2 (7 ngày) → đúng lần nữa là "đã nắm"; ôn sai → về giai đoạn 0. Câu đã nắm mà làm sai lại ở nơi khác thì quay về giai đoạn 0. Logic thuần ở `app/src/mistake-book.ts` (có test), hàm `nextReview` dùng lại từ `grading.ts`.
+- **"Đến hạn" tính theo ngày lịch giờ Việt Nam**, không theo giờ: sai lúc 19:00 hôm nay thì sáng mai đã thấy cần ôn. Thứ tự chọn câu: trễ lâu nhất trước, rồi câu sai nhiều lần nhất.
+- Mỗi đáp án ôn được lưu ngay khi trả lời (thoát giữa chừng không mất). Ghi câu sai vào sổ **không bao giờ làm hỏng** việc lưu kết quả bài: lỗi thì bỏ qua âm thầm.
+- Câu ôn lại **không ghi vào `attempts`** để thống kê "số câu" và "% đúng theo chủ điểm" của trang quản trị không bị lệch (câu ôn là câu đã từng sai). Thay vào đó có `mistake_book.reviews_count` / `last_reviewed_at` và hàm `admin_mistake_summary` (`db/migrations/2026-11-09_mistake_book.sql`). Thời gian ở màn hình sổ vẫn được tính vào nhật ký (`view_kind = 'mistakes'`).
+- Giám sát: tab Thống kê có bảng sổ lỗi sai từng em (đang theo dõi, cần ôn, quá hạn ≥ 3 ngày, đã nắm, lần ôn gần nhất) và cảnh báo khi có câu quá hạn ≥ 3 ngày.
+- Giới hạn đã biết: không có email hay thông báo đẩy, em phải mở web mới thấy nhắc. Chưa có ngoại lệ cho em nghỉ dài (câu cứ tồn lại, mỗi lần chỉ ôn 20).
+
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
 - Thành công: em tự giác học đều; điểm ngữ pháp tăng; PO theo dõi được tiến độ; em hiểu bản chất.

@@ -15,6 +15,7 @@ import './styles/app.css';
 import './styles/learn.css';
 import './styles/phase.css';
 import './styles/admin.css';
+import './styles/mistakes.css';
 import { clear, h } from './lib/dom';
 import { fetchAccess, readAuthErrorFromUrl, supabase, type Role } from './lib/supabase';
 import { trackRoute } from './activity-log';
@@ -23,6 +24,7 @@ import { adminView } from './views/admin';
 import { homeView } from './views/home';
 import { leaveLesson, lessonView } from './views/lesson';
 import { deniedView, loginView } from './views/login';
+import { leaveMistakes, mistakesView } from './views/mistakes';
 import { phaseView } from './views/phase';
 import { leavePhaseTest, phaseTestView, topicTestView } from './views/phasetest';
 import { topicView } from './views/topic';
@@ -34,6 +36,7 @@ const root: HTMLDivElement = app;
 function shell(email: string, role: Role, content: HTMLElement): HTMLElement {
   const nav = h('nav', { class: 'topnav', 'aria-label': 'Chính' },
     h('a', { href: '#/' }, 'Ôn Ngữ pháp 10'),
+    h('a', { href: '#/mistakes' }, 'Sổ lỗi sai'),
     role === 'admin' ? h('a', { href: '#/admin' }, 'Quản trị') : null,
     h('span', { class: 'spacer' }),
     h('span', { class: 'who' }, email),
@@ -49,6 +52,7 @@ async function render(): Promise<void> {
   const stale = (): boolean => mine !== renderId; // a newer render started; drop this one
   leaveLesson();
   leavePhaseTest();
+  leaveMistakes();
   clear(root);
   if (!supabase) { root.append(loginView(null)); return; }
   const { data } = await supabase.auth.getSession();
@@ -75,6 +79,7 @@ async function render(): Promise<void> {
   const route = window.location.hash.replace(/^#\/?/, '');
   let content: HTMLElement;
   if (route === 'admin' && role === 'admin') content = adminView();
+  else if (route === 'mistakes' || route === 'mistakes/review') content = await mistakesView(session.user.id, route === 'mistakes/review');
   else if (/^topic\/[^/]+\/test$/.test(route)) content = await topicTestView(decodeURIComponent(route.split('/')[1]), session.user.id);
   else if (route.startsWith('topic/')) content = await topicView(decodeURIComponent(route.slice(6)), session.user.id);
   else if (/^phase\/\d+\/test$/.test(route)) content = await phaseTestView(Number(route.split('/')[1]), session.user.id);

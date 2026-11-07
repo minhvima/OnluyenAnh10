@@ -1,6 +1,6 @@
 /** Pure helpers for the learning activity log (no network, no DOM) so they can be unit tested. */
 
-export type ViewKind = 'home' | 'topic' | 'lesson' | 'topic_test' | 'phase' | 'phase_test';
+export type ViewKind = 'home' | 'topic' | 'lesson' | 'topic_test' | 'phase' | 'phase_test' | 'mistakes';
 export interface ViewInfo { view_kind: ViewKind; ref_id: string | null; topic_code: string | null }
 
 /** Longest gap between two interactions that still counts as "studying" (a pause longer than this is idle). */
@@ -17,6 +17,7 @@ export function routeToView(route: string): ViewInfo | null {
   const r = route.replace(/^#?\/?/, '');
   if (r === 'admin' || r.startsWith('admin/')) return null;
   let m: RegExpMatchArray | null;
+  if (r === 'mistakes' || r === 'mistakes/review') return { view_kind: 'mistakes', ref_id: null, topic_code: null };
   if ((m = r.match(/^topic\/([^/]+)\/test$/))) return { view_kind: 'topic_test', ref_id: dec(m[1]), topic_code: dec(m[1]) };
   if ((m = r.match(/^topic\/([^/]+)$/))) return { view_kind: 'topic', ref_id: dec(m[1]), topic_code: dec(m[1]) };
   if ((m = r.match(/^phase\/(\d+)\/test$/))) return { view_kind: 'phase_test', ref_id: m[1], topic_code: null };

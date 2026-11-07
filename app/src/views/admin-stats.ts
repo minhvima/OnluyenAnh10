@@ -1,6 +1,7 @@
 import { addDays, bucketDaily, buildAlerts, fmtMinutes, num, percent, toCsv, todayVN, type Bucket, type DailyRow, type Granularity, type StudentSummary, type TopicStat } from '../admin-stats';
 import { fetchThreshold } from '../api';
 import { clear, h } from '../lib/dom';
+import { mistakeAlerts, type MistakeSummary } from '../mistake-book';
 import { supabase } from '../lib/supabase';
 
 type Metric = 'minutes' | 'answers' | 'accuracy' | 'tests';
@@ -13,7 +14,7 @@ interface HardQ { question_id: string; topic_code: string; lesson_id: string | n
 interface Abandoned { user_id: string; lesson_id: string; day: string; minutes: number }
 interface TestRow { id: string; user_id: string; phase: number; topic_code: string | null; finished_at: string; duration_s: number; n_questions: number; n_correct: number; score: number; pass_score: number; passed: boolean; comment: string }
 
-const KIND: Record<string, string> = { home: 'Trang chủ', topic: 'Chủ điểm', lesson: 'Bài học', topic_test: 'Kiểm tra chủ điểm', phase: 'Giai đoạn', phase_test: 'Kiểm tra giai đoạn' };
+const KIND: Record<string, string> = { home: 'Trang chủ', topic: 'Chủ điểm', lesson: 'Bài học', topic_test: 'Kiểm tra chủ điểm', phase: 'Giai đoạn', phase_test: 'Kiểm tra giai đoạn', mistakes: 'Sổ lỗi sai' };
 
 async function rpc<T>(name: string, args: Record<string, unknown> = {}): Promise<T[]> {
   if (!supabase) throw new Error('no supabase');
@@ -142,6 +143,7 @@ export async function statsTab(): Promise<HTMLElement> {
     clear(detail);
     detail.append(h('p', { class: 'note' }, 'Đang tải…'));
     let daily: DailyRow[], topics: TopicStat[], views: ViewTime[], hard: HardQ[], tests: TestRow[];
+    let mistakes: MistakeSummary[] | null = null; // null = migration 2026-11-09 not run yet
     let abandoned: Abandoned[] | null = null; // null = migration 2026-11-08 not run yet; the section is simply hidden
     try {
       [daily, topics, views, hard, tests] = await Promise.all([
@@ -157,15 +159,18 @@ export async function statsTab(): Promise<HTMLElement> {
       return;
     }
     abandoned = await rpc<Abandoned>('admin_abandoned_lessons', { p_from: from, p_to: to, p_user: user }).catch(() => null);
+    mistakes = await rpc<MistakeSummary>('admin_mistake_summary').then((r) => r.map((m) => ({ ...m, open_count: num(m.open_count), due_count: num(m.due_count), overdue_count: num(m.overdue_count), mastered_count: num(m.mastered_count) })).filter((m) => !user || m.user_id === user)).catch(() => null);
     topics = topics.map((t) => ({ ...t, answers: num(t.answers), correct: num(t.correct), accuracy: t.accuracy === null ? null : num(t.accuracy), lessons_mastered: num(t.lessons_mastered), lessons_total: num(t.lessons_total) }));
     const buckets = bucketDaily(daily.map((r) => ({ ...r, day: String(r.day).slice(0, 10) })), from, to, currentGran);
     const total = buckets.reduce((a, b) => ({ minutes: a.minutes + b.minutes, answers: a.answers + b.answers, correct: a.correct + b.correct, tests: a.tests + b.tests }), { minutes: 0, answers: 0, correct: 0, tests: 0 });
     const activeDays = new Set(daily.filter((r) => num(r.answers) > 0 || num(r.minutes) > 0).map((r) => String(r.day).slice(0, 10))).size;
 
+    const nameOfId = (id: string): string => { const s = students.find((x) => x.user_id === id); return s ? s.display_name || s.email : id.slice(0, 8); };
+    const nameOf = nameOfId;
     // alerts always look at the chosen scope
     clear(alertsBox);
     const scopeStudents = user ? students.filter((s) => s.user_id === user) : students;
-    const alerts = buildAlerts(scopeStudents, topics, threshold);
+    const alerts = [...buildAlerts(scopeStudents, topics, threshold), ...(mistakes ? mistakeAlerts(mistakes, (id) => nameOfId(id)).map((a) => ({ kind: 'idle' as const, userId: a.userId, text: a.text })) : [])];
     alertsBox.append(h('h2', {}, 'Cần chú ý'),
       alerts.length ? h('ul', { class: 'alert-list' }, ...alerts.map((a) => h('li', { class: a.kind }, h('span', { class: 'ico', 'aria-hidden': 'true' }, '!'), a.text))) : h('p', { class: 'note' }, '✓ Chưa có cảnh báo nào.'));
 
@@ -199,10 +204,14 @@ export async function statsTab(): Promise<HTMLElement> {
       ? table(['Câu hỏi', 'Bài', 'Lượt làm', 'Sai', '% sai'], hard.map((q) => [q.question_id, q.lesson_id, num(q.attempts), num(q.wrong), `${num(q.wrong_rate)}%`]), 'Câu sai nhiều')
       : h('p', { class: 'note' }, 'Chưa có câu nào được làm từ 5 lần trở lên.');
 
-    const nameOf = (id: string): string => { const s = students.find((x) => x.user_id === id); return s ? s.display_name || s.email : id.slice(0, 8); };
     const abandonedBox = abandoned === null ? '' : abandoned.length
       ? table(['Ngày', 'Học sinh', 'Bài', 'Phút xem'], abandoned.slice(0, 15).map((r) => [String(r.day).slice(8, 10) + '/' + String(r.day).slice(5, 7), nameOf(r.user_id), r.lesson_id, num(r.minutes)]), 'Bài mở nhưng chưa làm bài tập')
       : h('p', { class: 'note' }, 'Chưa có bài nào mở lâu mà chưa làm bài tập.');
+
+    const mistakeBox = mistakes === null ? '' : mistakes.length
+      ? table(['Học sinh', 'Đang theo dõi', 'Cần ôn', 'Quá hạn ≥3 ngày', 'Đã nắm', 'Lần ôn gần nhất'],
+          mistakes.map((m) => [nameOf(m.user_id), m.open_count, m.due_count, m.overdue_count > 0 ? `${m.overdue_count} ✗` : 0, m.mastered_count, m.last_reviewed_at ? fmtDate(m.last_reviewed_at) : 'Chưa ôn lần nào']), 'Sổ lỗi sai của từng học sinh')
+      : h('p', { class: 'note' }, 'Chưa có câu nào trong sổ lỗi sai.');
 
     const purgeMsg = h('p', { class: 'note', role: 'status' });
     const purgeBtn = h('button', {
@@ -234,6 +243,9 @@ export async function statsTab(): Promise<HTMLElement> {
       tests.length ? csvBtn('Tải CSV (bài kiểm tra)', `bai-kiem-tra-${stamp}.csv`, () => toCsv(['Thời điểm', 'Giai đoạn', 'Chủ điểm', 'Điểm /10', 'Đúng', 'Tổng câu', 'Giây', 'Đạt'], tests.map((t) => [t.finished_at, t.phase, t.topic_code, num(t.score), t.n_correct, t.n_questions, t.duration_s, t.passed ? 'có' : 'không']))) : '',
       h('h2', {}, 'Thời gian theo bài / chủ điểm'), viewTable,
       h('h2', {}, 'Câu sai nhiều'), h('p', { class: 'note' }, 'Câu nhiều em cùng sai có thể là câu khó hoặc câu có vấn đề. Xem lại ở tab Câu hỏi.'), hardTable,
+      mistakes === null ? '' : h('h2', {}, 'Sổ lỗi sai (ôn lặp lại 1/3/7 ngày)'),
+      mistakes === null ? '' : h('p', { class: 'note' }, 'Cần ôn = đã đến ngày hẹn ôn lại. Quá hạn = trễ từ 3 ngày trở lên. Học sinh cần mở web để thấy nhắc.'),
+      mistakeBox,
       abandoned === null ? '' : h('h2', {}, 'Mở bài nhưng chưa làm bài tập'),
       abandoned === null ? '' : h('p', { class: 'note' }, 'Bài xem từ 1 phút trở lên mà cùng ngày không có câu trả lời nào: em có thể mới đọc lý thuyết hoặc bỏ dở.'),
       abandonedBox,

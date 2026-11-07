@@ -160,6 +160,8 @@ create table mistake_book (
   next_review_at timestamptz not null default now() + interval '1 day',
   mastered       boolean not null default false,
   last_wrong_at  timestamptz not null default now(),
+  reviews_count  int  not null default 0,
+  last_reviewed_at timestamptz,
   primary key (user_id, question_id)
 );
 create index on mistake_book (user_id, next_review_at) where not mastered;
@@ -205,7 +207,7 @@ create table if not exists activity_log (
   id          bigint generated always as identity primary key,
   user_id     uuid not null references profiles on delete cascade,
   event       text not null check (event in ('login','view')),
-  view_kind   text check (view_kind in ('home','topic','lesson','topic_test','phase','phase_test')),
+  view_kind   text check (view_kind in ('home','topic','lesson','topic_test','phase','phase_test','mistakes')),
   ref_id      text,
   topic_code  text,
   duration_ms int check (duration_ms is null or duration_ms between 0 and 3600000),

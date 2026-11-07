@@ -30,7 +30,7 @@ const topics: Row[] = T.map(([topic_code, name_vi, name_en, sort_order, phase, p
 
 const progress: Row[] = [];
 const tables: Record<string, Row[]> = {
-  topics, lessons, questions, lesson_progress: progress, attempts: [], phase_test_runs: [], activity_log: [],
+  topics, lessons, questions, lesson_progress: progress, attempts: [], phase_test_runs: [], activity_log: [], mistake_book: [],
   app_settings: [{ key: 'mastery_threshold', value: 0.8 }], profiles: [{ display_name: 'Minh' }],
 };
 
@@ -40,15 +40,19 @@ class Query implements PromiseLike<{ data: unknown; error: null; count: number }
   constructor(private table: string) { this.rows = [...(tables[table] ?? [])]; }
   select(): this { return this; }
   eq(k: string, v: unknown): this { this.rows = this.rows.filter((r) => r[k] === v); return this; }
+  in(k: string, arr: unknown[]): this { this.rows = this.rows.filter((r) => arr.includes(r[k])); return this; }
   overlaps(k: string, arr: string[]): this { this.rows = this.rows.filter((r) => ((r[k] as string[]) ?? []).some((x) => arr.includes(x))); return this; }
   order(k: string, opts?: { ascending?: boolean }): this { const d = opts?.ascending === false ? -1 : 1; this.rows.sort((a, b) => d * ((a[k] as number | string) < (b[k] as number | string) ? -1 : (a[k] as number | string) > (b[k] as number | string) ? 1 : 0)); return this; }
   range(): this { return this; }
   maybeSingle(): this { this.single = true; return this; }
   insert(rows: Row | Row[]): this { tables[this.table].push(...(Array.isArray(rows) ? rows : [rows]).map((r) => ({ id: `run-${tables[this.table].length + 1}`, ...r }))); console.info('[preview] insert', this.table); return this; }
-  upsert(row: Row): this {
-    const i = tables[this.table].findIndex((r) => r.lesson_id === row.lesson_id);
-    if (i >= 0) tables[this.table][i] = row; else tables[this.table].push(row);
-    console.info('[preview] upsert', this.table, row);
+  upsert(input: Row | Row[]): this {
+    for (const row of Array.isArray(input) ? input : [input]) {
+      const same = this.table === 'mistake_book' ? (r: Row) => r.question_id === row.question_id : (r: Row) => r.lesson_id === row.lesson_id;
+      const i = tables[this.table].findIndex(same);
+      if (i >= 0) tables[this.table][i] = row; else tables[this.table].push(row);
+      console.info('[preview] upsert', this.table, row);
+    }
     return this;
   }
   update(): this { return this; }
@@ -93,6 +97,10 @@ function mockRpc(name: string, a: Record<string, string | null>): unknown {
   }
   if (name === 'admin_abandoned_lessons') return [{ user_id: 'u-lan', lesson_id: 'L_TENSES_03', day: day(1), minutes: 4.5 }, { user_id: 'u-minh', lesson_id: 'L_PASSIVE_VOICE_02', day: day(3), minutes: 1.2 }];
   if (name === 'admin_purge_activity_log') return 12;
+  if (name === 'admin_mistake_summary') {
+    return [{ user_id: 'u-minh', open_count: 18, due_count: 6, overdue_count: 0, mastered_count: 9, last_reviewed_at: new Date(Date.now() - 86_400_000).toISOString() },
+      { user_id: 'u-lan', open_count: 31, due_count: 31, overdue_count: 12, mastered_count: 0, last_reviewed_at: null }];
+  }
   return 'admin';
 }
 
@@ -127,3 +135,17 @@ export function readAuthErrorFromUrl(): string | null { return null; }
   return `${todo.length} lessons in phase ${phase}`;
 };
 (window as unknown as Record<string, unknown>).__clearProgress = () => { progress.length = 0; (tables.phase_test_runs as Row[]).length = 0; };
+
+// Preview helper: fill the mistake book with real questions, some due today, some later, some mastered.
+(window as unknown as Record<string, unknown>).__seedMistakes = (n = 25) => {
+  const day = (offset: number): string => new Date(Date.now() + offset * 86_400_000).toISOString();
+  (tables.mistake_book as Row[]).length = 0;
+  questions.slice(0, n).forEach((q, i) => {
+    const mastered = i % 7 === 6;
+    (tables.mistake_book as Row[]).push({
+      user_id: 'preview-user', question_id: q.question_id, topic_code: q.topic_code, wrong_count: 1 + (i % 3), stage: mastered ? 3 : i % 3,
+      next_review_at: mastered ? day(-9) : i % 4 === 3 ? day(2 + (i % 5)) : day(-(i % 4)), mastered, last_wrong_at: day(-10), reviews_count: mastered ? 3 : i % 3, last_reviewed_at: null,
+    });
+  });
+  return `${(tables.mistake_book as Row[]).length} rows`;
+};

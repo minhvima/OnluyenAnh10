@@ -1,4 +1,5 @@
 import { saveRun, type PhaseRun } from '../api';
+import { recordMistakes } from '../mistake-api';
 import { clear, h } from '../lib/dom';
 import { lookupBar, makeLookable } from '../lib/lookup';
 import { buildTest, loadBank, loadPhase, loadTopicTest, type PhaseData } from '../phase-data';
@@ -349,6 +350,8 @@ async function testView(data: PhaseData, userId: string, key: string, heading: s
     } catch {
       saveFailed = true;
     }
+    // Wrong or unanswered questions go to the mistake book even when saving the run failed.
+    await recordMistakes(userId, graded.filter((g) => !g.correct).map((g) => ({ question_id: g.question.question_id, topic_code: g.question.topic_code })));
     const view = resultView(data, graded, result, run, saveFailed, auto);
     root.replaceChildren(view);
     window.scrollTo({ top: 0 });

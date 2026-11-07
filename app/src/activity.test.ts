@@ -8,6 +8,8 @@ describe('routeToView', () => {
     expect(routeToView('topic/TENSES/test')?.view_kind).toBe('topic_test');
     expect(routeToView('phase/2')).toEqual({ view_kind: 'phase', ref_id: '2', topic_code: null });
     expect(routeToView('phase/2/test')?.view_kind).toBe('phase_test');
+    expect(routeToView('mistakes')).toEqual({ view_kind: 'mistakes', ref_id: null, topic_code: null });
+    expect(routeToView('#/mistakes/review')?.view_kind).toBe('mistakes');
   });
   it('extracts the topic of a lesson, even with underscores', () => {
     expect(routeToView('lesson/L_PASSIVE_VOICE_03')).toEqual({ view_kind: 'lesson', ref_id: 'L_PASSIVE_VOICE_03', topic_code: 'PASSIVE_VOICE' });

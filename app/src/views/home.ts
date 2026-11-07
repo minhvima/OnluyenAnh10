@@ -1,5 +1,7 @@
 import { fetchLessonRefs, fetchProgress, fetchRuns, fetchTopics, type LessonRef, type PhaseRun, type Progress } from '../api';
 import { h } from '../lib/dom';
+import { fetchMistakes } from '../mistake-api';
+import { countBook, type BookCounts } from '../mistake-book';
 import { supabase } from '../lib/supabase';
 import { phaseSummaries, type PhaseSummary } from '../phase-data';
 import { PASS_SCORE } from '../phase-test';
@@ -55,10 +57,27 @@ function phaseTestCard(s: PhaseSummary): HTMLElement {
       s.unlocked ? null : h('a', { class: 'link', href: `#/phase/${s.phase}` }, 'Xem còn thiếu bài nào')));
 }
 
+/** Reminder card for the mistake book on the home page. */
+export function mistakeCard(c: BookCounts): HTMLElement {
+  if (c.open === 0 && c.mastered === 0) {
+    return h('section', { class: 'mb-card', 'aria-label': 'Sổ lỗi sai' },
+      h('div', {}, h('h3', {}, 'Sổ lỗi sai'), h('p', {}, 'Chưa có câu nào. Câu nào em làm sai sẽ tự vào đây để ôn lại đúng lúc.')),
+      h('a', { class: 'btn ghost', href: '#/mistakes' }, 'Xem sổ'));
+  }
+  if (c.due > 0) {
+    return h('section', { class: 'mb-card due', 'aria-label': 'Sổ lỗi sai' },
+      h('div', {}, h('h3', {}, `Hôm nay có ${c.due} câu cần ôn lại`), h('p', {}, 'Ôn đúng lúc giúp em nhớ lâu hơn. Mỗi lần tối đa 20 câu.')),
+      h('a', { class: 'btn', href: '#/mistakes/review' }, 'Ôn ngay'));
+  }
+  return h('section', { class: 'mb-card', 'aria-label': 'Sổ lỗi sai' },
+    h('div', {}, h('h3', {}, 'Sổ lỗi sai'), h('p', {}, `✓ Hôm nay không có câu nào cần ôn. Đang theo dõi ${c.open} câu, đã nắm ${c.mastered} câu.`)),
+    h('a', { class: 'btn ghost', href: '#/mistakes' }, 'Xem sổ'));
+}
+
 export async function homeView(email: string): Promise<HTMLElement> {
   const root = h('main', { class: 'page' });
   try {
-    const [topics, refs, progress] = await Promise.all([fetchTopics(), fetchLessonRefs(), fetchProgress()]);
+    const [topics, refs, progress, book] = await Promise.all([fetchTopics(), fetchLessonRefs(), fetchProgress(), fetchMistakes().catch(() => null)]);
     let runs: PhaseRun[] = [];
     try {
       runs = await fetchRuns(); // fine if the history table does not exist yet
@@ -76,6 +95,7 @@ export async function homeView(email: string): Promise<HTMLElement> {
       h('div', {}, h('h1', {}, `Chào ${name}, hôm nay học tiếp nhé!`),
         next ? h('p', {}, `Bài gợi ý: ${next.title} · khoảng ${next.estimated_minutes} phút`) : h('p', {}, 'Chưa có bài nào được mở. Nhờ phụ huynh duyệt bài học trong mục Quản trị nhé.')),
       next ? h('a', { class: 'btn', href: `#/lesson/${next.lesson_id}` }, 'Học tiếp') : null));
+    if (book) root.append(mistakeCard(countBook(book, new Date())));
 
     if (topics.length === 0) root.append(h('p', { class: 'hint' }, 'Chưa có chủ điểm nào.'));
     for (const phase of [1, 2, 3, 4]) {
