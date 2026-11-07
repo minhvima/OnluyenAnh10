@@ -1,5 +1,4 @@
 import { supabase } from './lib/supabase';
-import { recordMistakes } from './mistake-api';
 import type { Lesson, Question, Topic } from './types';
 import type { TopicScore, WeakLesson } from './phase-test';
 
@@ -84,7 +83,6 @@ export async function saveSession(
     })),
   );
   if (e1) throw e1;
-  await recordMistakes(userId, records.filter((r) => !r.correct).map((r) => ({ question_id: r.question_id, topic_code: lesson.topic_code })));
 
   const { error: e2 } = await client.from('lesson_progress').upsert({
     user_id: userId,

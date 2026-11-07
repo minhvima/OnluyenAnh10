@@ -35,7 +35,8 @@ export async function recordMistakes(userId: string, wrong: { question_id: strin
     const have = new Map(((data ?? []) as MistakeRow[]).map((r) => [r.question_id, r] as const));
     await upsertRows(userId, uniq.map((w) => recordWrong(have.get(w.question_id), w, now)));
     return true;
-  } catch {
+  } catch (e) {
+    console.error('mistake_book: could not record wrong answers', e);
     return false;
   }
 }

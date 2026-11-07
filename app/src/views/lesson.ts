@@ -1,6 +1,7 @@
 import { fetchLesson, fetchLessonRefs, fetchPool, fetchThreshold, saveSession, type AnswerRecord, type LessonRef } from '../api';
 import { clear, h } from '../lib/dom';
 import { lookupBar, makeLookable } from '../lib/lookup';
+import { recordMistakes } from '../mistake-api';
 import { correctText, pickQuestions } from '../quiz';
 import type { Lesson, Question } from '../types';
 import { browserStore, clearSession, loadSession, saveSession as saveProgress, sessionKey } from '../session-store';
@@ -47,12 +48,23 @@ export async function lessonView(lessonId: string, userId: string): Promise<HTML
   const store = browserStore();
   const key = sessionKey(userId, lesson.lesson_id);
 
+  // Wrong answers go to the mistake book the moment they are given, so leaving halfway loses nothing.
+  let bookFailed = false;
   const begin = (picked: Question[], resume?: Progress): void => {
     stopPractice?.();
     const qids = picked.map((q) => q.question_id);
+    let booked = resume?.answers.length ?? 0;
     stopPractice = mountPractice(host, picked, (records) => { clearSession(store, key); void finished(records, picked); }, {
       resume,
-      onChange: (p) => saveProgress(store, key, { qids, ...p }),
+      onChange: (p) => {
+        saveProgress(store, key, { qids, ...p });
+        while (booked < p.answers.length) {
+          const q = picked[booked];
+          const ok = p.answers[booked].ok;
+          booked++;
+          if (!ok) void recordMistakes(userId, [{ question_id: q.question_id, topic_code: q.topic_code }]).then((done) => { if (!done) bookFailed = true; });
+        }
+      },
     });
   };
 
@@ -106,6 +118,7 @@ export async function lessonView(lessonId: string, userId: string): Promise<HTML
         h('p', {}, `Đúng ${correct}/${records.length} câu. Bài đạt khi đúng từ ${Math.round(threshold * 100)}% trở lên.`),
         mastered ? null : h('p', { class: 'hint' }, 'Em xem lại lý thuyết ở cột bên trái rồi luyện thêm. Bài sau vẫn mở, nhưng nắm chắc bài này trước sẽ dễ hơn.'),
         saveError ? h('p', { class: 'error', role: 'alert' }, 'Chưa lưu được kết quả (có thể do mạng). Kết quả lần này chưa được ghi lại.') : null,
+        bookFailed ? h('p', { class: 'error', role: 'alert' }, 'Chưa ghi được các câu sai vào sổ lỗi sai (có thể do mạng). Nhờ phụ huynh báo lại nếu lỗi này cứ lặp lại.') : null,
         missed.length
           ? h('div', {}, h('h3', {}, 'Những câu cần xem lại'),
               h('ul', { class: 'missed' }, ...missed.map((q) => h('li', {}, h('span', { 'data-lk': 'en' }, q.prompt.replace(/<[^>]*>/g, '').replace(/_{3,}/g, '____')), h('br'), h('b', {}, 'Đáp án: '), h('span', { 'data-lk': 'en' }, correctText(q))))))
