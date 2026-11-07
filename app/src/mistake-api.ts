@@ -48,6 +48,11 @@ export async function saveReviewAnswer(userId: string, row: MistakeRow, correct:
   return next;
 }
 
+/** Save a question that was sent back to stage 0 because its answer was looked at (see peekLapse). */
+export async function saveLapse(userId: string, row: MistakeRow): Promise<void> {
+  await upsertRows(userId, [row]);
+}
+
 const QUESTION_COLS = 'question_id,topic_code,cognitive_level,question_type,prompt,options,correct_answer,accepted_answers,explanation,hint,tags';
 
 /** Questions by id, in small batches so the request address stays short. */

@@ -72,6 +72,14 @@ export function applyReview(row: MistakeRow, correct: boolean, now: Date): Mista
   };
 }
 
+/**
+ * Looking at the answer of a question that is due counts as "not remembered": it goes back to stage 0 and
+ * comes again after 1 day. wrong_count and reviews_count stay as they are (a peek is neither a miss nor a review).
+ */
+export function peekLapse(row: MistakeRow, now: Date): MistakeRow {
+  return { ...row, stage: 0, mastered: false, next_review_at: addDays(now, 1) };
+}
+
 export interface BookCounts { open: number; due: number; mastered: number }
 
 export function countBook(rows: MistakeRow[], now: Date): BookCounts {

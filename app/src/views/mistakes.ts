@@ -1,8 +1,8 @@
 import { fetchTopics } from '../api';
 import { clear, h } from '../lib/dom';
 import { lookupBar, makeLookable } from '../lib/lookup';
-import { fetchMistakes, fetchQuestionsByIds, saveReviewAnswer } from '../mistake-api';
-import { REVIEW_SESSION_MAX, countBook, daysOverdue, isDue, pickDue, statusLabel, type MistakeRow } from '../mistake-book';
+import { fetchMistakes, fetchQuestionsByIds, saveLapse, saveReviewAnswer } from '../mistake-api';
+import { REVIEW_SESSION_MAX, countBook, daysOverdue, isDue, peekLapse, pickDue, statusLabel, type MistakeRow } from '../mistake-book';
 import { correctText } from '../quiz';
 import type { Question, Topic } from '../types';
 import { mountPractice } from './practice';
@@ -42,6 +42,7 @@ export async function mistakesView(userId: string, autoStart = false): Promise<H
 
   let filter = '';
   let showMastered = false;
+  const revealed = new Set<string>(); // answers the student chose to look at in this visit
   let shown = PAGE;
 
   /** Show the list screen (also used when coming back from a review). */
@@ -55,7 +56,7 @@ export async function mistakesView(userId: string, autoStart = false): Promise<H
     root.append(
       h('a', { class: 'back', href: '#/' }, '‹ Về trang chủ'),
       h('h1', {}, 'Sổ lỗi sai'),
-      h('p', { class: 'hint' }, 'Câu nào em làm sai sẽ tự vào đây. Em làm lại sau 1 ngày, 3 ngày, 7 ngày; đúng cả ba lần là em đã nắm câu đó.'));
+      h('p', { class: 'hint' }, 'Câu nào em làm sai sẽ tự vào đây. Em làm lại sau 1 ngày, 3 ngày, 7 ngày; đúng cả ba lần là em đã nắm câu đó. Muốn nhớ lâu, em đừng xem đáp án trước: xem đáp án một câu đang đến hạn thì câu đó phải ôn lại từ đầu.'));
 
     if (all.length === 0) {
       root.append(h('section', { class: 'panel mb-empty' }, h('h2', {}, 'Sổ đang trống'),
@@ -112,13 +113,41 @@ export async function mistakesView(userId: string, autoStart = false): Promise<H
           list.append(h('div', { class: 'mb-item gone' }, h('span', {}, `Câu ${r.question_id} không còn trong ngân hàng.`), pill));
           continue;
         }
-        list.append(h('details', { class: 'mb-item' },
+        const showAnswer = r.mastered || revealed.has(r.question_id);
+        const due = isDue(r, t);
+        const body = h('div', { class: 'mb-body' }, h('p', { 'data-lk': 'en' }, plain(q.prompt)));
+        if (showAnswer) {
+          body.append(h('p', {}, h('b', {}, 'Đáp án: '), h('span', { 'data-lk': 'en' }, correctText(q))), h('p', { 'data-lk': 'mixed' }, q.explanation));
+        } else {
+          const msg = h('p', { class: 'hint', role: 'status' }, due
+            ? 'Em thử nhớ lại đáp án trước đã. Nếu xem đáp án bây giờ, câu này sẽ phải ôn lại từ đầu (hẹn lại sau 1 ngày).'
+            : 'Em thử nhớ lại đáp án trước đã. Câu này chưa đến hạn ôn nên xem bây giờ không bị tính lại.');
+          const btn = h('button', { class: 'btn btn-small ghost', type: 'button' }, due ? 'Vẫn xem đáp án (phải ôn lại)' : 'Xem đáp án') as HTMLButtonElement;
+          btn.addEventListener('click', async () => {
+            if (due) {
+              btn.disabled = true;
+              try {
+                const next = peekLapse(r, new Date());
+                await saveLapse(userId, next);
+                byId.set(r.question_id, next);
+              } catch {
+                btn.disabled = false;
+                msg.textContent = 'Chưa lưu được nên chưa hiện đáp án. Em kiểm tra mạng rồi thử lại nhé.';
+                return;
+              }
+              revealed.add(r.question_id);
+              showList(); // counts and the status label changed
+            } else {
+              revealed.add(r.question_id);
+              void renderItems();
+            }
+          });
+          body.append(msg, btn);
+        }
+        list.append(h('details', { class: 'mb-item', ...(revealed.has(r.question_id) ? { open: true } : {}) },
           h('summary', {}, h('span', { class: 'mb-q', 'data-lk': 'en' }, short(plain(q.prompt))),
             h('span', { class: 'mb-meta' }, topicName.get(r.topic_code) ?? r.topic_code, ` · sai ${r.wrong_count} lần`), pill),
-          h('div', { class: 'mb-body' },
-            h('p', { 'data-lk': 'en' }, plain(q.prompt)),
-            h('p', {}, h('b', {}, 'Đáp án: '), h('span', { 'data-lk': 'en' }, correctText(q))),
-            h('p', { 'data-lk': 'mixed' }, q.explanation))));
+          body));
       }
       if (visible.length > shown) {
         list.append(h('button', { class: 'btn ghost', type: 'button', onclick: () => { shown += PAGE; void renderItems(); } }, `Xem thêm (${visible.length - shown} câu)`));

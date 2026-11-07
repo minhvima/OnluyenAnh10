@@ -59,6 +59,7 @@
 - Mỗi đáp án ôn được lưu ngay khi trả lời (thoát giữa chừng không mất). Ghi câu sai vào sổ **không bao giờ làm hỏng** việc lưu kết quả bài: lỗi thì bỏ qua âm thầm.
 - Câu ôn lại **không ghi vào `attempts`** để thống kê "số câu" và "% đúng theo chủ điểm" của trang quản trị không bị lệch (câu ôn là câu đã từng sai). Thay vào đó có `mistake_book.reviews_count` / `last_reviewed_at` và hàm `admin_mistake_summary` (`db/migrations/2026-11-09_mistake_book.sql`). Thời gian ở màn hình sổ vẫn được tính vào nhật ký (`view_kind = 'mistakes'`).
 - Giám sát: tab Thống kê có bảng sổ lỗi sai từng em (đang theo dõi, cần ôn, quá hạn ≥ 3 ngày, đã nắm, lần ôn gần nhất) và cảnh báo khi có câu quá hạn ≥ 3 ngày.
+- **Không cho xem đáp án trước khi nhớ (PO chọn kiểu nghiêm, 2026-11-07):** theo nguyên lý nhớ lại chủ động, danh sách sổ chỉ hiện đề với câu chưa nắm; đáp án và lời giải chỉ hiện khi em bấm "Xem đáp án". Với câu **đang đến hạn**, bấm xem tính là chưa nhớ: về giai đoạn 0, hẹn lại sau 1 ngày (`peekLapse`; không cộng số lần sai hay số lần ôn). Câu chưa đến hạn thì xem không bị tính. Câu đã nắm hiện đáp án luôn. Trong lượt ôn, đáp án vẫn chỉ hiện sau khi em trả lời.
 - Giới hạn đã biết: không có email hay thông báo đẩy, em phải mở web mới thấy nhắc. Chưa có ngoại lệ cho em nghỉ dài (câu cứ tồn lại, mỗi lần chỉ ôn 20).
 
 ## D4 — Khảo sát PO (2026-11-01)

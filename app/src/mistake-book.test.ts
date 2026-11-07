@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyReview, countBook, daysOverdue, isDue, mistakeAlerts, pickDue, recordWrong, statusLabel, vnDate, type MistakeRow } from './mistake-book';
+import { applyReview, peekLapse, countBook, daysOverdue, isDue, mistakeAlerts, pickDue, recordWrong, statusLabel, vnDate, type MistakeRow } from './mistake-book';
 
 const NOW = new Date('2026-11-10T03:00:00Z'); // 10:00 on 10 Nov in Vietnam
 const row = (o: Partial<MistakeRow> = {}): MistakeRow => ({
@@ -62,6 +62,15 @@ describe('applyReview', () => {
     const input = row();
     applyReview(input, true, NOW);
     expect(input.stage).toBe(0);
+  });
+});
+
+describe('peekLapse', () => {
+  it('sends the question back to stage 0, due tomorrow, without counting a miss or a review', () => {
+    const r = peekLapse(row({ stage: 2, wrong_count: 2, reviews_count: 2, next_review_at: '2026-11-09T03:00:00Z' }), NOW);
+    expect(r).toMatchObject({ stage: 0, mastered: false, wrong_count: 2, reviews_count: 2 });
+    expect(vnDate(r.next_review_at)).toBe('2026-11-11');
+    expect(isDue(r, NOW)).toBe(false);
   });
 });
 
