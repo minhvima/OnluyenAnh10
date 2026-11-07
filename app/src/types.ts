@@ -45,6 +45,8 @@ export interface FormulaV2 {
 export interface RuleRow { case: string; rule: string; examples: { en: string; vi?: string }[] }
 export interface RuleTable { title: string; rows: RuleRow[] }
 export interface UseExample extends AnnotatedExample { use: string }
+/** Plain-language definition shown first, for terms the lesson relies on (e.g. "mệnh đề"). */
+export interface Concept { lines: string[]; examples?: { en: string; vi: string; note?: string }[] }
 
 export interface LessonContent {
   objective?: string;
@@ -62,6 +64,7 @@ export interface LessonContent {
   formula_v2?: FormulaV2[];
   rules?: RuleTable[];
   examples?: UseExample[];
+  concept?: Concept;
 }
 
 export interface Lesson {

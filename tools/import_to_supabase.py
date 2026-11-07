@@ -9,6 +9,8 @@ Usage:
   python tools/import_to_supabase.py                 # dry-run, prints what would be sent
   python tools/import_to_supabase.py --apply         # insert new rows, never overwrite existing ones
   python tools/import_to_supabase.py --apply --overwrite   # also overwrite existing rows (resets admin edits!)
+  python tools/import_to_supabase.py --apply --update-lesson-content --topic SENTENCE_STRUCTURES
+                                                     # refresh content of one topic's lessons, status kept
 """
 import argparse
 import glob
@@ -171,9 +173,15 @@ def main():
                     help="only refresh the wrong-answer reasons (why_wrong) of existing questions")
     ap.add_argument("--update-lesson-content", action="store_true",
                     help="only refresh lesson content (e.g. after merge_lesson_ext.py); keeps approval status")
+    ap.add_argument("--topic", metavar="TOPIC_CODE",
+                    help="with --update-lesson-content: only lessons of this topic, e.g. SENTENCE_STRUCTURES")
     args = ap.parse_args()
 
     questions, lessons = list(question_rows()), list(lesson_rows())
+    if args.topic:
+        lessons = [l for l in lessons if l["topic_code"] == args.topic]
+        if not lessons:
+            sys.exit(f"No lessons with topic_code {args.topic}.")
     ids = [q["question_id"] for q in questions]
     if len(ids) != len(set(ids)):
         sys.exit("Duplicate question_id in data_bank/json -- run tools/validate_questions.py first.")

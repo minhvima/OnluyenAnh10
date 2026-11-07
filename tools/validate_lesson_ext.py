@@ -67,6 +67,17 @@ def main(paths):
                     for e in exs:
                         if not e.get("en"):
                             bad(w, "example needs en")
+            c = les.get("concept")
+            if c is not None:
+                if not (isinstance(c.get("lines"), list) and c["lines"]):
+                    bad(lid, "concept.lines must be a non-empty list")
+                for j, e in enumerate(c.get("examples", [])):
+                    if not e.get("en") or not e.get("vi"):
+                        bad(f"{lid} concept.examples[{j}]", "en and vi required")
+            allowed = {"objective", "observe", "signals", "common_mistakes", "mnemonic", "flashcards", "story", "formula", "comparison_tables"}
+            for k in les.get("overrides", {}):
+                if k not in allowed:
+                    bad(lid, f"override {k!r} not allowed")
             ex = les.get("examples", [])
             if len(ex) < 8:
                 bad(lid, f"needs >= 8 examples, has {len(ex)}")

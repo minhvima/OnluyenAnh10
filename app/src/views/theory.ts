@@ -63,6 +63,17 @@ export function renderTheory(lesson: Lesson): HTMLElement {
   const root = h('section', { class: 'panel theory', 'aria-label': 'Lý thuyết' }, h('h2', {}, lesson.title));
   if (c.objective) root.append(h('p', { class: 'obj' }, c.objective));
 
+  if (c.concept?.lines.length) {
+    root.append(sec('var(--c-accent)', 'Khái niệm'));
+    const box = h('div', { class: 'concept' }, h('ul', { 'data-lk': 'mixed' }, ...c.concept.lines.map((t) => h('li', {}, t))));
+    for (const e of c.concept.examples ?? []) {
+      box.append(h('div', { class: 'concept-ex' },
+        h('p', { 'data-lk': 'en' }, e.en), h('span', { class: 'vi' }, e.vi),
+        e.note ? h('small', { 'data-lk': 'mixed' }, e.note) : null));
+    }
+    root.append(box);
+  }
+
   if (c.story) {
     root.append(sec('var(--c-primary)', 'Đọc thử một đoạn'));
     const story = h('div', { class: 'story' });

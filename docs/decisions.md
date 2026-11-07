@@ -62,6 +62,12 @@
 - **Không cho xem đáp án trước khi nhớ (PO chọn kiểu nghiêm, 2026-11-07):** theo nguyên lý nhớ lại chủ động, danh sách sổ chỉ hiện đề với câu chưa nắm; đáp án và lời giải chỉ hiện khi em bấm "Xem đáp án". Với câu **đang đến hạn**, bấm xem tính là chưa nhớ: về giai đoạn 0, hẹn lại sau 1 ngày (`peekLapse`; không cộng số lần sai hay số lần ôn). Câu chưa đến hạn thì xem không bị tính. Câu đã nắm hiện đáp án luôn. Trong lượt ôn, đáp án vẫn chỉ hiện sau khi em trả lời.
 - Giới hạn đã biết: không có email hay thông báo đẩy, em phải mở web mới thấy nhắc. Chưa có ngoại lệ cho em nghỉ dài (câu cứ tồn lại, mỗi lần chỉ ôn 20).
 
+## D12 — Nâng cấp lý thuyết lên bản v2 và ô "Khái niệm" (2026-11-07, PO yêu cầu)
+- PO nhận xét lý thuyết chủ điểm 13–14 sơ sài, khái niệm khó hiểu, công thức không rõ, thiếu ví dụ theo cách dùng. Rà soát: chỉ TENSES có bản v2 (`formula_v2`, `rules`, `examples`); chủ điểm 2–14 đều là bản rút gọn.
+- PO chọn: làm chủ điểm 13 → 14 trước, duyệt khuôn rồi mới làm 2–12. Thêm trường `concept` (lời giải thích thường + ví dụ đối chiếu) hiện đầu bài, trước truyện mở đầu.
+- Nguồn nội dung ở `tools/content_src/<x>_ext.py` → `data_bank/lessons_ext/ext_<x>.json`; `merge_lesson_ext.py` gộp thêm `concept` và `overrides` (thay observe/common_mistakes/... bản cũ). Không đổi schema DB (`lessons.content` là jsonb); cập nhật bằng `import_to_supabase.py --apply --update-lesson-content --topic <CODE>`.
+- Chủ điểm 13 xong và PO đã duyệt (2026-11-07).
+
 ## D4 — Khảo sát PO (2026-11-01)
 - Người học: vài em (anh chị em, bạn bè); hổng nhiều chỗ; còn < 3 tháng; 30–45 phút/ngày.
 - Thành công: em tự giác học đều; điểm ngữ pháp tăng; PO theo dõi được tiến độ; em hiểu bản chất.

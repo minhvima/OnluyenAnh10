@@ -58,6 +58,12 @@
 .vi { color: var(--c-vi); font-size: 16px; display: block; }
 .observe { margin: 0; padding-left: 22px; color: var(--c-ink); }
 .observe li { margin: 4px 0; }
+.concept { border: 2px solid var(--c-border); border-radius: var(--radius-sm); padding: 10px 16px; }
+.concept ul { margin: 0; padding-left: 22px; color: var(--c-ink); }
+.concept li { margin: 4px 0; }
+.concept-ex { border-top: 1px dashed var(--c-border); margin-top: 8px; padding-top: 8px; }
+.concept-ex p { margin: 0; font-weight: 600; }
+.concept-ex small { display: block; color: var(--c-ink); font-size: 15px; margin-top: 2px; }
 
 /* annotated sentences */
 .legend { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 10px; }
